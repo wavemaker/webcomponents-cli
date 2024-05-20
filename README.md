@@ -1,4 +1,4 @@
-# wm-sspa-cli
+# webcoponent-cli
 A CLI to convert [**WaveMaker**](https://www.wavemakeronline.com/) Prefabs to [**WebComponents**](https://www.webcomponents.org/)
 
 ## Usage
