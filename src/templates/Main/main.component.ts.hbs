@@ -41,6 +41,7 @@ export class {{componentName}} extends {{#if enableSpa}}BaseSpaPageComponent{{el
     }
 
     ngAfterViewInit() {
+        this.addParentToCustomElement();
         this.addPrefabAttributes();
         this.bindFnsToPrefab();
         const attributes = this.elementRef.nativeElement.attributes;
@@ -54,6 +55,16 @@ export class {{componentName}} extends {{#if enableSpa}}BaseSpaPageComponent{{el
         if(super.ngAfterViewInit) {
             // @ts-ignore
             super.ngAfterViewInit();
+        }
+    }
+
+    addParentToCustomElement(){
+        const wmAppElement = document.createElement('div');
+        const wmPrefabElement = this.elementRef.nativeElement;
+        wmAppElement.classList.add('wm-app');
+        if (wmPrefabElement) {
+            wmPrefabElement.parentNode.insertBefore(wmAppElement, wmPrefabElement);
+            wmAppElement.appendChild(wmPrefabElement);
         }
     }
 

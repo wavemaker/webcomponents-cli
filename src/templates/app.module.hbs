@@ -5,7 +5,7 @@ export class AppModule implements DoBootstrap {
     ngDoBootstrap() {
         console.log("--------bootstraping webcomponent---------")
         const mainComponent = createCustomElement(MainComponent, { injector: this.injector });
-        customElements.define('wm-prefab-{{prefabName}}', mainComponent);
+        customElements.define('wmp-{{prefabName}}', mainComponent);
     }
 
 }
