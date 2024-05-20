@@ -1,0 +1,43 @@
+const fsextra = require('fs-extra');
+const concat = require('concat');
+const fs = require('fs');
+const path = require('path');
+
+(async function postBuild() {
+    const files = [
+        './dist/ng-bundle/runtime.js',
+        './dist/ng-bundle/polyfills.js',
+        './dist/ng-bundle/scripts.js',
+        './dist/ng-bundle/vendor.js'
+    ];
+
+    await concat(files, './dist/ng-bundle/wm-element.js');
+
+    const deleteUnusedLocaleFiles = async () => {
+        let localeDirs = ['./dist/ng-bundle/locales/angular/global', './dist/ng-bundle/locales/fullcalendar', './dist/ng-bundle/locales/moment'];
+        let allowedLocales = ["en-gb.js", "en.js"]
+
+        const deleteLocaleFiles = (localeDir) => {
+            const files = fs.readdirSync(localeDir);
+
+            files.forEach(localeFileName => {
+                if(!allowedLocales.includes(localeFileName)) {
+                    const fullPath = path.join(path.resolve(localeDir), localeFileName);
+                    // delete the file if it is not from the above allowed array
+                    fs.unlinkSync(fullPath);
+                }
+            });
+        }
+
+        localeDirs.forEach((localeDir) => {
+            try {
+                deleteLocaleFiles(localeDir);
+            } catch(e) {
+                console.log(`Something went wrong while deleting ${localeDir} folder`);
+            }
+        });
+    };
+
+    await deleteUnusedLocaleFiles();
+
+})();

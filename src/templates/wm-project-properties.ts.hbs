@@ -1,0 +1,15 @@
+import { setWmProjectProperties } from '@wm/core';
+
+const properties = {{properties}}
+const additionalProps = {{additionalProperties}}
+
+Object.assign(properties, additionalProps);
+
+if(properties.type === "PREFAB") {
+    // @ts-ignore
+    window._WM_APP_PROPERTIES = properties;
+}
+
+setWmProjectProperties(properties);
+
+export default () => {};

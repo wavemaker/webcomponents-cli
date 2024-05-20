@@ -1,0 +1,46 @@
+@Injectable()
+export class WMInterceptor implements HttpInterceptor {
+
+    WM_REDIRECTS = [
+        "/services",
+        "/prefabs",
+        "/resources",
+        "resources/",
+        "./services/",
+        "./prefabs/",
+        "ng-bundle",
+        "j_spring_security_check",
+        "/j_spring_security_check"
+    ];
+
+    intercept(request:HttpRequest<any>, next:HttpHandler):Observable<HttpEvent<any>> {
+        console.log("WM_WEBCOMPONENT_CLI | REQUEST | "+request.url);
+
+        let redirectToWm = this.WM_REDIRECTS.some((url)=>request.url.startsWith(url));
+        let isPathMappingReq = request.url.indexOf("path_mapping.json") !== -1;
+        let isi18nReq = request.url.indexOf("resources/i18n") !== -1;
+
+        //@ts-ignore
+        let apiUrl = WM_APPS_META["{{prefabName}}"].apiUrl, artifactsUrl = WM_APPS_META["{{prefabName}}"].artifactsUrl;
+        if (redirectToWm) {
+            if(isi18nReq) {
+                let i18nJsonFile = request.url.split("/").pop();
+                artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl)
+                request = request.clone({url:artifactsUrl+'/'+i18nJsonFile});
+            } else {
+                apiUrl = (apiUrl.slice(-1) === "/" ? apiUrl.slice(0, -1) : apiUrl)
+                request = request.clone({url:apiUrl+'/'+request.url});
+            }
+        }
+        if (isPathMappingReq) {
+            //just return empty data for path_mapping json request as all the files are
+            // already merged into scripts.js
+            return new Observable(observer => {
+                observer.next(new HttpResponse({ status: 200, body: {} }));
+                observer.complete();
+            });
+        }
+
+        return next.handle(request);
+    }
+}

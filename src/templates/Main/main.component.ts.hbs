@@ -1,0 +1,102 @@
+import { Component, Inject, Injector, ViewEncapsulation, DoCheck, NgZone, ElementRef, AfterViewInit, ViewChild  } from '@angular/core';
+
+import { $invokeWatchers, setNgZone, setPipeProvider, UserDefinedExecutionContext } from '@wm/core';
+import { PrefabDirective } from '@wm/components/prefab';
+
+import { initScript } from './{{name}}.component.script';
+import { getVariables } from './{{name}}.component.variables';
+import { expressionData } from './{{name}}.component.expressions';
+
+import { AppRef, {{#if enableSpa}}BaseSpaPageComponent{{else}}BasePageComponent{{/if}} } from '@wm/runtime/base';
+import { PipeProvider } from '@wm/runtime/base';
+import { setTheme } from 'ngx-bootstrap/utils';
+
+@Component({
+    selector: 'app-page-{{name}}',
+    templateUrl: './{{name}}.component.html',
+    styleUrls: ['./{{name}}.component.css'],
+    encapsulation: ViewEncapsulation.None,
+    providers: [
+        {
+            provide: UserDefinedExecutionContext,
+            useExisting: {{componentName}}
+        }
+    ]
+})
+export class {{componentName}} extends {{#if enableSpa}}BaseSpaPageComponent{{else}}BasePageComponent{{/if}} implements DoCheck {
+
+    override pageName = '{{name}}';
+    [key: string]: any;
+    @ViewChild(PrefabDirective) prefabDirective;
+
+    constructor(@Inject(NgZone) ngZone: NgZone, _pipeProvider: PipeProvider, private elementRef: ElementRef) {
+        setNgZone(ngZone);
+        setPipeProvider(_pipeProvider);
+
+        // @ts-ignore
+        setTheme('bs3');
+
+        super();
+        super.init();
+    }
+
+    ngAfterViewInit() {
+        this.addPrefabAttributes();
+        this.bindFnsToPrefab();
+        const attributes = this.elementRef.nativeElement.attributes;
+        for (let i = 0; i < attributes.length; i++) {
+            const attribute = attributes[i];
+            // console.log('----------Attribute---------:', attribute.name, 'Value:', attribute.value);
+            setTimeout(() => {});
+        }
+
+        // @ts-ignore
+        if(super.ngAfterViewInit) {
+            // @ts-ignore
+            super.ngAfterViewInit();
+        }
+    }
+
+    addPrefabAttributes() {
+        const attributes = this.elementRef.nativeElement.attributes;
+        for (let i = 0; i < attributes.length; i++) {
+            const attrName = attributes[i].name;
+            const attrValue = attributes[i].value;
+            this.prefabDirective.nativeElement.setAttribute(attrName, attrValue);
+        }
+    }
+
+    bindFnsToPrefab() {
+        const wcAttributes = this.elementRef.nativeElement.attributes;
+        const prefabEle = this.prefabDirective.nativeElement;
+        console.log("==========prefabEle===========", prefabEle)
+        for (let i = 0; i < wcAttributes.length; i++) {
+            const attribute = wcAttributes[i];
+            let attrName = attribute.name,
+            attrVal = attribute.value;
+            if (attrVal.indexOf("(") !== -1) {
+                let fn = attrVal,
+                fnName = fn.substring(0, attrVal.indexOf("("));
+                // console.log("--============fnName-===========", fnName);
+                // @ts-ignore
+                this[fnName] = window[fnName];
+            }
+        }
+    }
+
+    getVariables() {
+        return getVariables();
+    }
+
+    evalUserScript(Page, App, Utils) {
+        initScript(Page, App, Utils);
+    }
+
+    getExpressions() {
+        return expressionData;
+    }
+
+    ngDoCheck() {
+        $invokeWatchers(true);
+    }
+}

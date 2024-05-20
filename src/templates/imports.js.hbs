@@ -1,0 +1,27 @@
+import { Injector, Injectable, DoBootstrap, InjectionToken } from '@angular/core';
+import { APP_BASE_HREF } from '@angular/common';
+import { HttpInterceptor, HttpRequest, HttpResponse, HttpHandler, HttpEvent, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import  { createCustomElement } from '@angular/elements';
+import { MainComponent } from "./pages/Main/Main.component";
+import { APP_INITIALIZER } from '@angular/core';
+
+export const PREFAB_NAME = new InjectionToken<string>('Prefab Name');
+
+export function initMetadata(prefabName) {
+    return () => {
+        try {
+            //@ts-ignore
+            downloadPrefabsScripts();
+        }catch(e) {
+            //no prefabs present. just ignore the error
+        }
+        //@ts-ignore
+        let baseAPIUrl = WM_APPS_META[prefabName].apiUrl;
+        //@ts-ignore
+        let artifactsUrl = WM_APPS_META[prefabName].artifactsUrl;
+        //@ts-ignore
+        __webpack_require__.p = __webpack_public_path__ = artifactsUrl || 'ng-bundle/';
+    };
+}

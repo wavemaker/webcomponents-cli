@@ -1,0 +1,23 @@
+(function(prefabName) {
+    const mountStyle = (styleSheetUrl) => {
+        var head  = document.getElementsByTagName('head')[0];
+        var link  = document.createElement('link');
+        link.rel  = 'stylesheet';
+        link.type = 'text/css';
+        link.href = styleSheetUrl;
+        link.media = 'all';
+        head.appendChild(link);
+    }
+
+    const mountStyles = () => {
+        let styles= ["wm-styles.css", "styles.css"];
+        styles.map(function(stylesheet) {
+            //@ts-ignore
+            let artifactsUrl = WM_APPS_META[prefabName].artifactsUrl;
+            artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl)
+            mountStyle(artifactsUrl + '/' + stylesheet);
+        });
+    }
+
+    mountStyles();
+})("{{prefabName}}")
