@@ -40,15 +40,25 @@ const node_path = require("path");
 const generateNgCode = async (sourceDir) => {
 	let codegenPath = node_path.resolve(`./node_modules/@wavemaker/angular-codegen`), codegenCli = node_path.resolve(`${codegenPath}/src/codegen-args-cli.js`);
 	let targetDir = node_path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
-	await exec(`cd ${codegenPath} && node ${codegenCli} -s ${sourceDir} -t ${targetDir} --codegenPath=${codegenPath}`);
+	await execCommand(`cd ${codegenPath} && node ${codegenCli} -s ${sourceDir} -t ${targetDir} --codegenPath=${codegenPath}/`);
+}
 
+const getUpdatedFileForPublishing = async(sourceDir, packageJson) => {
+	let prefabName = await getPrefabName(sourceDir);
 
-	// await execCommand(`cd ${codegenPath} && node ${codegenCli} -s ${sourceDir} -t ${targetDir} --codegenPath=${codegenPath}/`);
+	packageJson["name"] = `@wavemaker/wmp-${prefabName}`;
+	packageJson["private"] = false;
+	packageJson["main"] = `dist/ng-bundle/wmp-${prefabName}.js`;
+	packageJson["files"] = ["dist/ng-bundle/**/*"];
+
+	return packageJson;
 }
 
 const updatePackageJson = async(sourceDir) => {
 	const packageJsonFile = getPackageJson(sourceDir);
 	let packageJson = readFileSync(packageJsonFile, true);
+
+	packageJson = await getUpdatedFileForPublishing(sourceDir, packageJson);
 
 	const scriptsConfig = packageJson['scripts'];
 	scriptsConfig["build:wcd"] = "node build-scripts/build.js";
@@ -79,11 +89,11 @@ const updatePackageJson = async(sourceDir) => {
 	await writeFile(packageJsonFile, JSON.stringify(packageJson, null, 4));
 };
 
-const copyWebComponentArtifacts = async projectPath => {
-	const wcDistPath = `${projectPath}/dist-wc`;
+const copyWebComponentArtifacts = async sourceDir => {
+	/*const wcDistPath = `${sourceDir}/dist-wc`;
 	rimraf.sync(wcDistPath);
 
-	const bundlePath = getNgBundle(projectPath);
+	const bundlePath = getNgBundle(sourceDir);
 	let distFiles = ["wm-element.js", "main.js"];
 	distFiles.forEach(async function(fileName) {
 		await ncp(path.resolve(`${projectPath}/dist/ng-bundle/${fileName}`), path.join(wcDistPath, path.basename(fileName)), (err) => {
@@ -91,7 +101,11 @@ const copyWebComponentArtifacts = async projectPath => {
 				console.error(`Error copying ${projectPath}/dist/ng-bundle/${fileName} to ${wcDistPath}: ${err}`);
 			};
 		});
-	})
+	})*/
+
+	const bundlePath = getNgBundle(sourceDir);
+	let prefabName = await getPrefabName(sourceDir);
+	fs.renameSync(`${bundlePath}/main.js`, `${bundlePath}/wmp-${prefabName}.js`);
 }
 
 const installDeps = async sourceDir => {
@@ -386,7 +400,7 @@ const generateDist = async(sourceDir) => {
 	await copyResourceFiles(sourceDir);
 	await installDeps(sourceDir);
 	await buildApp(sourceDir);
-	// await copyWebComponentArtifacts(sourceDir);
+	await copyWebComponentArtifacts(sourceDir);
 };
 
 module.exports = {
