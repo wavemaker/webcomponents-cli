@@ -25,7 +25,7 @@
   "author": "naresh.ravulapalli@wavemaker.com",
   "license": "ISC",
   "dependencies": {
-    "@wavemaker/angular-codegen": "file:./wavemaker-angular-codegen-1.0.0.tgz",
+    "@wavemaker/angular-codegen": "11.5.0-next.141661",
     "chalk": "^3.0.0",
     "clear": "^0.1.0",
     "clui": "^0.3.6",

@@ -2,5 +2,7 @@ node_modules
 .vscode/settings.json
 dist
 .DS_Store
+src/.DS_Store
+src/templates/.DS_Store
 .history
 .idea
