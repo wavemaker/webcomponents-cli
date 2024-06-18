@@ -2,12 +2,14 @@ const fs = require("fs");
 const { path, join } = require('path');
 const rimraf = require("rimraf");
 const ncp = require("ncp");
+const fsp = require('fs').promises;
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const readFile = util.promisify(fs.readFile);
 
 const {
 	WEB_COMPONENT_APP_DIR,
+	CUSTOM_WEBPACK_CONFIG_FILE,
 	readFileSync,
 	writeFile,
 	execCommand,
@@ -31,6 +33,7 @@ const {
 	getComponentName,
 	geti18nDir,
 	getPagesDir,
+	getServiceDefsDir,
 	getWCAppDir
 } = require('./utils');
 
@@ -40,6 +43,16 @@ const node_path = require("path");
 const generateNgCode = async (sourceDir) => {
 	let codegenPath = node_path.resolve(`./node_modules/@wavemaker/angular-codegen`), codegenCli = node_path.resolve(`${codegenPath}/src/codegen-args-cli.js`);
 	let targetDir = node_path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
+	try {
+		fs.mkdirSync(targetDir);
+		console.log(`Target directory '${targetDir}' created successfully!`);
+	} catch (err) {
+		if (err.code === 'EEXIST') {
+			//console.log(`target directory '${targetDir}' already exists.`);
+		} else {
+			console.error(`Error creating directory: ${err.message}`);
+		}
+	}
 	await execCommand(`cd ${codegenPath} && node ${codegenCli} -s ${sourceDir} -t ${targetDir} --codegenPath=${codegenPath}/`);
 }
 
@@ -55,6 +68,7 @@ const getUpdatedFileForPublishing = async(sourceDir, packageJson) => {
 }
 
 const updatePackageJson = async(sourceDir) => {
+	let prefabName = await getPrefabName(sourceDir);
 	const packageJsonFile = getPackageJson(sourceDir);
 	let packageJson = readFileSync(packageJsonFile, true);
 
@@ -63,19 +77,19 @@ const updatePackageJson = async(sourceDir) => {
 	const scriptsConfig = packageJson['scripts'];
 	scriptsConfig["build:wcd"] = "node build-scripts/build.js";
 	scriptsConfig["build:wc"] = "node build-scripts/build.js --c=production --output-hashing=none";
-	scriptsConfig["postbuild:wcd"] = scriptsConfig["postbuild:wc"] = "node build-scripts/post-build-ng-element.js";
+	scriptsConfig["postbuild:wcd"] = scriptsConfig["postbuild:wc"] = `node build-scripts/post-build-ng-element.js --name=${prefabName}`;
 
 	removeCordovaPlugins(packageJson);
 
 	const dependenciesConfig = packageJson['dependencies'];
 
-	//hardcoded for now. get the latest version and use it here
-	dependenciesConfig["@wavemaker/variables"] = "11.5.2-next.141102";
+	//  gets the latest version always on npm i
+	dependenciesConfig["@wavemaker/variables"] = "*";
 
 	if(dependenciesConfig["@angular/elements"]) {
 		console.info("Angular Elements package is already added!")
 	} else {
-		dependenciesConfig["@angular/elements"] = "15.2.9";
+		dependenciesConfig["@angular/elements"] = "16.2.12";
 	}
 
 	const devDependenciesConfig = packageJson['devDependencies'];
@@ -102,16 +116,12 @@ const copyWebComponentArtifacts = async sourceDir => {
 			};
 		});
 	})*/
-
-	const bundlePath = getNgBundle(sourceDir);
-	let prefabName = await getPrefabName(sourceDir);
-	fs.renameSync(`${bundlePath}/main.js`, `${bundlePath}/wmp-${prefabName}.js`);
 }
 
 const installDeps = async sourceDir => {
 	await execCommand(`cd ${getWCAppDir(sourceDir)}`);
-	const file = getPackageLockJson(sourceDir);
-	rimraf.sync(file);
+	//const file = getPackageLockJson(sourceDir);
+	//rimraf.sync(file);
 	await execCommand(`cd ${getWCAppDir(sourceDir)} && npm i`);
 }
 
@@ -142,7 +152,7 @@ const updateAngularJson = async(sourceDir) => {
 
 	buildOptions["scripts"] = removeScriptsLazyEntries(buildOptions["scripts"]);
 	buildOptions["styles"] = removeStylesLazyEntries(buildOptions["styles"]);
-	delete buildOptions["customWebpackConfig"];
+	buildOptions["customWebpackConfig"]["path"] = `./${CUSTOM_WEBPACK_CONFIG_FILE}`;
 	delete buildOptions["indexTransform"];
 
 	//all the backend resources like i18n/en.json/servicedefs are placed here and move them to ng-bundle dir of the final dist
@@ -152,7 +162,6 @@ const updateAngularJson = async(sourceDir) => {
 		"output": "."
 	});
 
-	build["builder"] = "@angular-devkit/build-angular:browser";
 	build["configurations"]["production"]["vendorChunk"] = true;
 	build["configurations"]["development"]["vendorChunk"] = true;
 	//keep this till it stabilises. if prod required pass it as a param to build script (--c=production)
@@ -285,7 +294,7 @@ const updateModule = async(sourceDir) => {
 
 	await updateAppModuleWithPrefabUrls(sourceDir, prefabName);
 
-	console.log(`WEBCOMPONENT NAME | wm-prefab-${prefabName}`);
+	console.log(`WEBCOMPONENT NAME | wmp-${prefabName}`);
 };
 
 
@@ -323,6 +332,13 @@ const copyWebComponentBuildFiles = async (sourceDir) => {
 	const template = getHandlebarTemplate('wc-post-build');
 	const contents = template({});
 	await writeFile(`${targetDir}/build-scripts/post-build-ng-element.js`, contents);
+};
+
+const copyWebpackConfigFiles = async (sourceDir) => {
+	let targetDir = getGenNgDir(sourceDir);
+	const template = getHandlebarTemplate('wc-webpack-config');
+	const contents = template({});
+	await writeFile(`${targetDir}/wc-custom-webpack.config.js`, contents);
 };
 
 const copyResourceFiles = async (sourceDir) => {
@@ -393,10 +409,39 @@ const generateWmProjectProperties = async (properties, sourceDir) => {
 	await writeFile(`${targetDir}/src/app/wm-project-properties.ts`, contents);
 };
 
+const generateServiceDefs = async (sourceDir) => {
+	let targetDir = getGenNgDir(sourceDir);
+	const template = getHandlebarTemplate('servicedefs');
+	let defs = await getMergedServiceDefs(sourceDir);
+	const contents = template({defs: safeString(JSON.stringify(defs, undefined, 4))});
+	await writeFile(`${targetDir}/resources/files/servicedefs`, contents);
+};
+
+const getMergedServiceDefs = async (sourceDir) => {
+	let serviceDefsDir = getServiceDefsDir(sourceDir);
+	try {
+		const serviceDefsObject = {};
+		for (const file of await readDir(serviceDefsDir)) {
+			const filePath = join(serviceDefsDir, file);
+			const stats = await fsp.stat(filePath);
+			if (stats.isFile() && node_path.extname(filePath) === '.json') {
+				const fileContent = await fsp.readFile(filePath, 'utf-8');
+				const jsonData = JSON.parse(fileContent);
+				Object.assign(serviceDefsObject, jsonData);
+			}
+		}
+		return serviceDefsObject;
+	} catch (error) {
+		console.error('Error:', error);
+	}
+}
+
 const generateDist = async(sourceDir) => {
 	let wmProjectProperties = await getWMPropsObject(sourceDir);
 	await generateWmProjectProperties(wmProjectProperties, sourceDir);
+	await generateServiceDefs(sourceDir);
 	await copyWebComponentBuildFiles(sourceDir);
+	await copyWebpackConfigFiles(sourceDir);
 	await copyResourceFiles(sourceDir);
 	await installDeps(sourceDir);
 	await buildApp(sourceDir);

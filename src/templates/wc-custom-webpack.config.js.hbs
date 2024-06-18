@@ -1,0 +1,17 @@
+const path = require(`path`);
+
+module.exports = {
+    module: {
+        rules: [
+            {
+                test: /\.(png|jpe?g|gif|svg)$/i,
+                type: 'asset/inline',
+                parser: {
+                    dataUrlCondition: {
+                        maxSize: 80 * 1024 // 80kb
+                    }
+                }
+            }
+        ]
+    }
+}
