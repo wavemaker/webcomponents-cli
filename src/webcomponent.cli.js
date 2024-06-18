@@ -11,6 +11,7 @@ const {
 } = require('./update.project');
 
 const { initTemplates } = require('./template.helpers');
+const { initMaven } = require('./maven.utils');
 
 const argv = require("yargs")
 	.usage("Usage: $0 -t [target wavemaker angular generated project path]")
@@ -40,6 +41,7 @@ const addNgElementToApp = async (source) => {
 (async () => {
 	if (argv.source) {
 		initTemplates();
+		await initMaven(argv.source);
 		await addNgElementToApp(argv.source);
 	}
 })();

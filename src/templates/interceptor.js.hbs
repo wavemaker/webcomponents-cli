@@ -19,14 +19,15 @@ export class WMInterceptor implements HttpInterceptor {
         let redirectToWm = this.WM_REDIRECTS.some((url)=>request.url.startsWith(url));
         let isPathMappingReq = request.url.indexOf("path_mapping.json") !== -1;
         let isi18nReq = request.url.indexOf("resources/i18n") !== -1;
+        let servicedefsReq = request.url.indexOf("servicedefs") !== -1;
 
         //@ts-ignore
         let apiUrl = WM_APPS_META["{{prefabName}}"].apiUrl, artifactsUrl = WM_APPS_META["{{prefabName}}"].artifactsUrl;
         if (redirectToWm) {
-            if(isi18nReq) {
-                let i18nJsonFile = request.url.split("/").pop();
+            if(isi18nReq || servicedefsReq) {
+                let fileName = request.url.split("/").pop();
                 artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl)
-                request = request.clone({url:artifactsUrl+'/'+i18nJsonFile});
+                request = request.clone({url:artifactsUrl+'/'+fileName});
             } else {
                 apiUrl = (apiUrl.slice(-1) === "/" ? apiUrl.slice(0, -1) : apiUrl)
                 request = request.clone({url:apiUrl+'/'+request.url});

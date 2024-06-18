@@ -13,12 +13,14 @@ const readDir = util.promisify(fs.readdir);
 const readFile = util.promisify(fs.readFile);
 
 const WEB_COMPONENT_APP_DIR = "generated_wc_app";
+const CUSTOM_WEBPACK_CONFIG_FILE = "wc-custom-webpack.config.js";
 
 const getWCAppDir = sourceDir => path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
 const getSrcDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/src`);
 const getAppDir = sourceDir => path.resolve(`${getSrcDir(sourceDir)}/app`);
 const getPagesDir = sourceDir => path.resolve(`${getAppDir(sourceDir)}/pages`);
 const getPrefabsDir = sourceDir => path.resolve(`${getAppDir(sourceDir)}/prefabs`);
+const getProfilesDir = sourceDir => path.resolve(`${sourceDir}/profiles`);
 const getWebappDir = sourceDir => path.resolve(`${getSrcDir(sourceDir)}/main/webapp`);
 const getThemesDir = sourceDir => path.resolve(`${getWebappDir(sourceDir)}/themes`);
 const getPackageJson = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/package.json`);
@@ -32,6 +34,7 @@ const getResourceFilesDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}
 const getWMProjectPropsFile = sourceDir => path.resolve(`${getAppDir(sourceDir)}/wm-project-properties.ts`);
 const geti18nDir = sourceDir => path.resolve(`${sourceDir}/i18n`);
 const getGenNgDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}`);
+const getServiceDefsDir = sourceDir => path.resolve(`${sourceDir}/target/classes/servicedefs`);
 const getNgBundle = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist/ng-bundle`);
 const getComponentName = name => `${upperFirst(name)}Component`;
 
@@ -123,6 +126,7 @@ const getPrefabName = async(sourceDir) => {
 
 module.exports = {
 	WEB_COMPONENT_APP_DIR,
+	CUSTOM_WEBPACK_CONFIG_FILE,
 	readFileSync,
 	writeFile,
 	execCommand,
@@ -132,6 +136,7 @@ module.exports = {
 	getMainComponentTemplate,
 	getMainTs,
 	getPrefabsDir,
+	getProfilesDir,
 	getResourceFilesDir,
 	getWMProjectPropsFile,
 	getPackageJson,
@@ -142,6 +147,7 @@ module.exports = {
 	getWCAppDir,
 	getNgBundle,
 	getPagesDir,
+	getServiceDefsDir,
 	getGenNgDir,
 	validateProject,
 	getPrefabName,
