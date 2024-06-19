@@ -1,4 +1,4 @@
-# webcomponent-cli
+# webcomponents-cli
 A CLI to convert [**WaveMaker**](https://www.wavemakeronline.com/) Prefabs to [**WebComponents**](https://www.webcomponents.org/)
 
 ## Usage
@@ -12,5 +12,5 @@ The CLI can take them as paramaters,
 The CLI can be invoked directly without installation using `npx` &
 will ensure it executes the latest version available.
 ```
-npx @wavemaker/webcomponent-cli -s /path/to/prefab/project
+npx @wavemaker/webcomponents-cli -s /path/to/prefab/project
 ```
