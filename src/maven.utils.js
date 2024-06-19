@@ -4,6 +4,7 @@ const {promises: fsp} = require("fs");
 const node_path = require("path");
 const fs = require("fs");
 const {getHandlebarTemplate, safeString} = require("./template.helpers");
+const { log, error } = require("./console.utils");
 
 /**
  * invoking the maven method
@@ -19,9 +20,9 @@ const replaceUIBuildJS = async (sourceDir) => {
 	let newUIBuildJs = template({});
 	try {
 		fs.writeFileSync(`${sourceDir}/ui-build.js`, newUIBuildJs, 'utf8');
-		console.log(`${sourceDir}/ui-build.js file replaced successfully!`);
+		//log(`${sourceDir}/ui-build.js file replaced successfully!`);
 	} catch (err) {
-		console.error(`Error replacing file ${sourceDir}/ui-build.js:`, err);
+		error(`Error replacing file ${sourceDir}/ui-build.js:`, err);
 	}
 
 };
@@ -60,8 +61,8 @@ const updateProfiles = async (sourceDir) => {
 				await fsp.writeFile(filePath, updatedProps, 'utf8');
 			}
 		}
-	} catch (error) {
-		console.error('Error:', error);
+	} catch (err) {
+		error(`Error - ${err}`);
 	}
 }
 

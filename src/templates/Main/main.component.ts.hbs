@@ -80,7 +80,7 @@ export class {{componentName}} extends {{#if enableSpa}}BaseSpaPageComponent{{el
     bindFnsToPrefab() {
         const wcAttributes = this.elementRef.nativeElement.attributes;
         const prefabEle = this.prefabDirective.nativeElement;
-        console.log("==========prefabEle===========", prefabEle)
+        // console.log("==========prefabEle===========", prefabEle)
         for (let i = 0; i < wcAttributes.length; i++) {
             const attribute = wcAttributes[i];
             let attrName = attribute.name,

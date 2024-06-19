@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path  = require('path');
 const util = require("util");
+const exec = util.promisify(require("child_process").exec);
 
 const { spawnSync} = require('child_process');
 
@@ -11,7 +12,7 @@ const node_path = require("path");
 const stat = util.promisify(fs.stat);
 const readDir = util.promisify(fs.readdir);
 const readFile = util.promisify(fs.readFile);
-
+const { log, error } = require("./console.utils");
 const WEB_COMPONENT_APP_DIR = "generated_wc_app";
 const CUSTOM_WEBPACK_CONFIG_FILE = "wc-custom-webpack.config.js";
 
@@ -34,7 +35,8 @@ const getResourceFilesDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}
 const getWMProjectPropsFile = sourceDir => path.resolve(`${getAppDir(sourceDir)}/wm-project-properties.ts`);
 const geti18nDir = sourceDir => path.resolve(`${sourceDir}/i18n`);
 const getGenNgDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}`);
-const getServiceDefsDir = sourceDir => path.resolve(`${sourceDir}/target/classes/servicedefs`);
+const getTargetDir = sourceDir => path.resolve(`${sourceDir}/target`);
+const getServiceDefsDir = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/classes/servicedefs`);
 const getNgBundle = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist/ng-bundle`);
 const getComponentName = name => `${upperFirst(name)}Component`;
 
@@ -69,17 +71,19 @@ const validateProject = async (sourceDir) => {
 	//add check for prefab project. Should work only with prefab project anything else throw error
 };
 
-const execCommand = (command) => {
+const execCommand = async (command) => {
 	try {
+		// await exec(`${command}`);
 		const commandProcess = spawnSync(command, { stdio: 'inherit', shell: true });
 		if (commandProcess.status === 0) {
-			console.log(`Executed command ${command} successfully!`);
+			log(`Executed the command - ${command} - successfully!`);
 		} else {
-			console.error('Error during command:', commandProcess.error || commandProcess.stderr);
+			error('Error during command - ', commandProcess.error || commandProcess.stderr);
 			process.exit(1);
 		}
-	} catch (error) {
-		console.error('Synchronous error:', error);
+	} catch (err) {
+		error(`Synchronous error - ${err}`);
+		throw err;
 	}
 
 }
@@ -120,8 +124,7 @@ const getWMPropsObject = async(sourceDir) => {
 
 const getPrefabName = async(sourceDir) => {
 	let propsObj = await getWMPropsObject(sourceDir);
-	let prefabName = propsObj['name'];
-	return prefabName.toLowerCase();
+	return propsObj['name'];
 };
 
 module.exports = {
@@ -144,6 +147,7 @@ module.exports = {
 	getAngularJson,
 	getThemesConfigJson,
 	geti18nDir,
+	getTargetDir,
 	getWCAppDir,
 	getNgBundle,
 	getPagesDir,
