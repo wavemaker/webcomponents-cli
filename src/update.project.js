@@ -6,6 +6,7 @@ const fsp = require('fs').promises;
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const readFile = util.promisify(fs.readFile);
+const { log, error } = require("./console.utils");
 
 const {
 	WEB_COMPONENT_APP_DIR,
@@ -34,7 +35,7 @@ const {
 	geti18nDir,
 	getPagesDir,
 	getServiceDefsDir,
-	getWCAppDir
+	getWCAppDir, getTargetDir
 } = require('./utils');
 
 const { getHandlebarTemplate, safeString } = require('./template.helpers');
@@ -45,12 +46,12 @@ const generateNgCode = async (sourceDir) => {
 	let targetDir = node_path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
 	try {
 		fs.mkdirSync(targetDir);
-		console.log(`Target directory '${targetDir}' created successfully!`);
+		log(`Target directory '${targetDir}' created successfully!`);
 	} catch (err) {
 		if (err.code === 'EEXIST') {
-			//console.log(`target directory '${targetDir}' already exists.`);
+			//log(`target directory '${targetDir}' already exists.`);
 		} else {
-			console.error(`Error creating directory: ${err.message}`);
+			error(`Error creating directory: ${err.message}`);
 		}
 	}
 	await execCommand(`cd ${codegenPath} && node ${codegenCli} -s ${sourceDir} -t ${targetDir} --codegenPath=${codegenPath}/`);
@@ -58,6 +59,7 @@ const generateNgCode = async (sourceDir) => {
 
 const getUpdatedFileForPublishing = async(sourceDir, packageJson) => {
 	let prefabName = await getPrefabName(sourceDir);
+	prefabName = prefabName.toLowerCase();
 
 	packageJson["name"] = `@wavemaker/wmp-${prefabName}`;
 	packageJson["private"] = false;
@@ -69,6 +71,8 @@ const getUpdatedFileForPublishing = async(sourceDir, packageJson) => {
 
 const updatePackageJson = async(sourceDir) => {
 	let prefabName = await getPrefabName(sourceDir);
+	prefabName = prefabName.toLowerCase();
+
 	const packageJsonFile = getPackageJson(sourceDir);
 	let packageJson = readFileSync(packageJsonFile, true);
 
@@ -173,6 +177,7 @@ const updateAngularJson = async(sourceDir) => {
 
 const updateMainTsFile = async(sourceDir) => {
 	let prefabName = await getPrefabName(sourceDir);
+	prefabName = prefabName.toLowerCase();
 
 	const mainTemplate = getMainTs(sourceDir);
 	const template = getHandlebarTemplate('mount-files');
@@ -180,7 +185,7 @@ const updateMainTsFile = async(sourceDir) => {
 
 	try {
 		fs.appendFileSync(mainTemplate, mountStyles);
-		//console.log('String appended to file successfully.');
+		//log('String appended to file successfully.');
 	} catch (err) {
 		console.error('Error appending to file:', err);
 	}
@@ -285,6 +290,7 @@ const updateModule = async(sourceDir) => {
 	let appModule = fs.readFileSync(appModuleFile, 'utf8');
 
 	let prefabName = await getPrefabName(sourceDir);
+	prefabName = prefabName.toLowerCase();
 
 	appModule = updateModuleClass(appModule, prefabName);
 	appModule = updateAppModuleProviders(appModule, prefabName);
@@ -294,7 +300,7 @@ const updateModule = async(sourceDir) => {
 
 	await updateAppModuleWithPrefabUrls(sourceDir, prefabName);
 
-	console.log(`WEBCOMPONENT NAME | wmp-${prefabName}`);
+	log(`WEBCOMPONENT NAME | wmp-${prefabName}`);
 };
 
 
@@ -318,7 +324,10 @@ const updateMainFile = async(sourceDir) => {
 };
 
 const updatePrefabFile = async(sourceDir) => {
-	let prefabName = convertToCamelCase(await getPrefabName(sourceDir));
+	let prefabName = await getPrefabName(sourceDir)
+	prefabName = prefabName.toLowerCase();
+	prefabName = convertToCamelCase(prefabName);
+
 	const prefabCompTemplate = `${getPrefabsDir(sourceDir)}/${prefabName}/${prefabName}.component.html`;
 	let prefabHtml = fs.readFileSync(prefabCompTemplate, 'utf8');
 
@@ -342,10 +351,25 @@ const copyWebpackConfigFiles = async (sourceDir) => {
 };
 
 const copyResourceFiles = async (sourceDir) => {
-	const template = getHandlebarTemplate('locale-json');
-	const contents = template({});
-	//contents are hardcoded. generate the content and name dynamically
-	await writeFile(`${getResourceFilesDir(sourceDir)}/en.json`, contents);
+	let prefabName = await getPrefabName(sourceDir);
+
+	let mvnTargetDir = getTargetDir(sourceDir);
+
+	let sourceI18nDir = `${mvnTargetDir}/${prefabName}/resources/i18n`;
+	const i18nFiles = fs.readdirSync(sourceI18nDir);
+	let destI18nDir = getResourceFilesDir(sourceDir);
+
+	i18nFiles.forEach(i18nFile => {
+		const sourcePath = join(sourceI18nDir, i18nFile);
+		const destPath = join(destI18nDir, i18nFile);
+
+		try {
+			fs.copyFileSync(sourcePath, destPath);
+			log(`Copied ${sourcePath} to ${destPath}`);
+		} catch (err) {
+			error(`Error copying file ${sourcePath}: ${err}`);
+		}
+	});
 };
 
 const getActiveTheme = async (sourceDir) => {
@@ -431,18 +455,20 @@ const getMergedServiceDefs = async (sourceDir) => {
 			}
 		}
 		return serviceDefsObject;
-	} catch (error) {
-		console.error('Error:', error);
+	} catch (err) {
+		console.error(`Error - ${err}`);
 	}
 }
 
 const generateDist = async(sourceDir) => {
 	let wmProjectProperties = await getWMPropsObject(sourceDir);
 	await generateWmProjectProperties(wmProjectProperties, sourceDir);
-	await generateServiceDefs(sourceDir);
 	await copyWebComponentBuildFiles(sourceDir);
 	await copyWebpackConfigFiles(sourceDir);
+
+	await generateServiceDefs(sourceDir);
 	await copyResourceFiles(sourceDir);
+
 	await installDeps(sourceDir);
 	await buildApp(sourceDir);
 	await copyWebComponentArtifacts(sourceDir);
