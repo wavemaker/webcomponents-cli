@@ -4,7 +4,7 @@ const node_path = require("path");
 const templates = new Map();
 
 const  initTemplates = () => {
-	const templatePath = node_path.resolve('./src/templates');
+	const templatePath = node_path.resolve(__dirname, './templates');
 	templates.set('interceptor', Handlebars.compile(fs.readFileSync(templatePath+'/interceptor.js.hbs', 'utf-8')))
 	templates.set('mount-files', Handlebars.compile(fs.readFileSync(templatePath+'/mount.js.hbs', 'utf-8')))
 	templates.set('imports', Handlebars.compile(fs.readFileSync(templatePath+'/imports.js.hbs', 'utf-8')))
@@ -15,7 +15,7 @@ const  initTemplates = () => {
 	templates.set('wm-project-properties', Handlebars.compile(fs.readFileSync(templatePath+'/wm-project-properties.ts.hbs', 'utf-8')));
 	templates.set('locale-json', Handlebars.compile(fs.readFileSync(templatePath+'/locale.json.hbs', 'utf-8')))
 	templates.set('wc-post-build', Handlebars.compile(fs.readFileSync(templatePath+'/post-build-ng-element.js.hbs', 'utf-8')))
-	templates.set('wc-ui-build', Handlebars.compile(fs.readFileSync(node_path.resolve('./src/wc-ui-build.js'), 'utf-8')))
+	templates.set('wc-ui-build', Handlebars.compile(fs.readFileSync(templatePath+'/wc-ui-build.js', 'utf-8')))
 	templates.set('servicedefs', Handlebars.compile(fs.readFileSync(templatePath+'/servicedefs.hbs', 'utf-8')))
 	templates.set('wc-webpack-config', Handlebars.compile(fs.readFileSync(templatePath+'/wc-custom-webpack.config.js.hbs', 'utf-8')))
 };

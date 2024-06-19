@@ -1,6 +1,6 @@
 {
   "name": "@wavemaker/webcomponents-cli",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A CLI to convert WaveMaker Prefabs into WebComponents",
   "main": "index.js",
   "files": [
@@ -42,6 +42,7 @@
   "devDependencies": {
     "brotli-webpack-plugin": "1.1.0",
     "compression-webpack-plugin": "10.0.0",
+    "copy-webpack-plugin": "^12.0.2",
     "handlebars": "^4.0.12",
     "webpack": "5.76.1",
     "webpack-cli": "5.1.4",
