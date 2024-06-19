@@ -6,5 +6,5 @@ A CLI to convert [**WaveMaker**](https://www.wavemakeronline.com/) Prefabs to [*
 The CLI can be invoked directly without installation using `npx` & 
 will ensure it executes the latest version available.
 ```
-npx @wavemaker/webcomponent-cli
+npx @wavemaker/webcomponent-cli -s /path/to/prefab/project
 ```
