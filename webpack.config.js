@@ -5,7 +5,7 @@ module.exports = {
     entry: `./src/webcomponent.cli.js`,
     output: {
         path: path.resolve(__dirname,`dist`),
-        filename: `webcomponent.cli.bundle.js`
+        filename: `webcomponents.cli.bundle.js`
     },
     target: `node`,
     externals: [nodeExternals()],

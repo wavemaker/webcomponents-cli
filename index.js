@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-require(`./dist/webcomponent_cli_bundle`);
+require(`./dist/webcomponents.cli.bundle`);
