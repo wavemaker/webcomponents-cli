@@ -42,11 +42,11 @@ const { getHandlebarTemplate, safeString } = require('./template.helpers');
 const node_path = require("path");
 
 const generateNgCode = async (sourceDir) => {
-	let codegenPath = node_path.resolve(`./node_modules/@wavemaker/angular-codegen`), codegenCli = node_path.resolve(`${codegenPath}/src/codegen-args-cli.js`);
 	let targetDir = node_path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
 	try {
 		fs.mkdirSync(targetDir);
 		log(`Target directory '${targetDir}' created successfully!`);
+		await execCommand(`cd ${targetDir} && npm i @wavemaker/angular-codegen@11.5.0-next.141661 --no-save --no-package-lock`);
 	} catch (err) {
 		if (err.code === 'EEXIST') {
 			//log(`target directory '${targetDir}' already exists.`);
@@ -54,6 +54,7 @@ const generateNgCode = async (sourceDir) => {
 			error(`Error creating directory: ${err.message}`);
 		}
 	}
+	let codegenPath = node_path.resolve(`${targetDir}/node_modules/@wavemaker/angular-codegen`), codegenCli = node_path.resolve(`${codegenPath}/src/codegen-args-cli.js`);
 	await execCommand(`cd ${codegenPath} && node ${codegenCli} -s ${sourceDir} -t ${targetDir} --codegenPath=${codegenPath}/`);
 }
 

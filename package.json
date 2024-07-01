@@ -1,6 +1,6 @@
 {
   "name": "@wavemaker/webcomponents-cli",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A CLI to convert WaveMaker Prefabs into WebComponents",
   "main": "index.js",
   "files": [
@@ -25,7 +25,6 @@
   "author": "naresh.ravulapalli@gmail.com",
   "license": "ISC",
   "dependencies": {
-    "@wavemaker/angular-codegen": "11.5.0-next.141661",
     "acorn": "^8.12.0",
     "chalk": "^3.0.0",
     "clear": "^0.1.0",
