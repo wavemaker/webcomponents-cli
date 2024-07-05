@@ -14,7 +14,7 @@ const { initTemplates } = require('./template.helpers');
 const { initMaven } = require('./maven.utils');
 
 const argv = require("yargs")
-	.usage("Usage: $0 -t [target wavemaker angular generated project path]")
+	.usage("Usage: $0 -s [source WaveMaker Prefab project path]")
 	.options({
 		"source": {
 			alias: "s",
