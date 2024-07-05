@@ -1,6 +1,6 @@
 {
   "name": "@wavemaker/webcomponents-cli",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "A CLI to convert WaveMaker Prefabs into WebComponents",
   "main": "index.js",
   "files": [
@@ -9,9 +9,11 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack",
-    "pack": "npm run build && npm pack",
-    "start": "npm run build && node ."
+    "build:prod": "webpack --config webpack.config.prod.js",
+    "build:dev": "webpack --config webpack.config.dev.js",
+    "pack:prod": "npm run build:prod && npm pack",
+    "pack:dev": "npm run build:dev && npm pack",
+    "start": "npm run build:dev && node ."
   },
   "keywords": [
     "WaveMaker",
@@ -41,11 +43,11 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "brotli-webpack-plugin": "1.1.0",
-    "compression-webpack-plugin": "10.0.0",
     "copy-webpack-plugin": "^12.0.2",
+    "terser-webpack-plugin": "^5.3.10",
     "webpack": "5.76.1",
     "webpack-cli": "5.1.4",
+    "webpack-merge": "^6.0.1",
     "webpack-node-externals": "3.0.0"
   },
   "engines": {
