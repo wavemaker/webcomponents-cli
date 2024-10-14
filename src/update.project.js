@@ -46,10 +46,10 @@ const generateNgCode = async (sourceDir) => {
 	try {
 		fs.mkdirSync(targetDir);
 		log(`Target directory '${targetDir}' created successfully!`);
-		await execCommand(`cd ${sourceDir} && npm i @wavemaker/angular-codegen@11.5.0-next.141661 --no-save --no-package-lock`);
+		await execCommand(`cd ${sourceDir} && npm i --prefix . @wavemaker/angular-codegen@11.5.0-next.141661 --no-save --no-package-lock`);
 	} catch (err) {
 		if (err.code === 'EEXIST') {
-			await execCommand(`cd ${sourceDir} && npm i @wavemaker/angular-codegen@11.5.0-next.141661 --no-save --no-package-lock`);
+			await execCommand(`cd ${sourceDir} && npm i --prefix . @wavemaker/angular-codegen@11.5.0-next.141661 --no-save --no-package-lock`);
 			//log(`target directory '${targetDir}' already exists.`);
 		} else {
 			error(`Error creating directory: ${err.message}`);
