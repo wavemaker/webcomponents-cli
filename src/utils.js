@@ -1,4 +1,5 @@
 const fs = require("fs");
+const xml2js = require('xml2js');
 const path  = require('path');
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
@@ -13,13 +14,16 @@ const stat = util.promisify(fs.stat);
 const readDir = util.promisify(fs.readdir);
 const readFile = util.promisify(fs.readFile);
 const { log, error } = require("./console.utils");
-const WEB_COMPONENT_APP_DIR = "generated_wc_app";
+const WEB_COMPONENT_APP_DIR = "generated-angular-app";
 const CUSTOM_WEBPACK_CONFIG_FILE = "wc-custom-webpack.config.js";
 
 const getWCAppDir = sourceDir => path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
 const getSrcDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/src`);
+const getBuildScriptsDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/build-scripts`);
 const getAppDir = sourceDir => path.resolve(`${getSrcDir(sourceDir)}/app`);
 const getPagesDir = sourceDir => path.resolve(`${getAppDir(sourceDir)}/pages`);
+const getPartialsDir = sourceDir => path.resolve(`${getAppDir(sourceDir)}/partials`);
+const getPagesConfigJson = sourceDir => path.resolve(`${sourceDir}/src/main/webapp/pages/pages-config.json`);
 const getPrefabsDir = sourceDir => path.resolve(`${getAppDir(sourceDir)}/prefabs`);
 const getProfilesDir = sourceDir => path.resolve(`${sourceDir}/profiles`);
 const getWebappDir = sourceDir => path.resolve(`${getSrcDir(sourceDir)}/main/webapp`);
@@ -33,6 +37,8 @@ const getMainComponentTemplate = sourceDir => path.resolve(`${getPagesDir(source
 const getAppModule = sourceDir => path.resolve(`${getAppDir(sourceDir)}/app.module.ts`);
 const getResourceFilesDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/resources/files`);
 const getWMProjectPropsFile = sourceDir => path.resolve(`${getAppDir(sourceDir)}/wm-project-properties.ts`);
+const getPOMXml = sourceDir => node_path.resolve(`${sourceDir}/pom.xml`);
+const getWMPropertiesXml = sourceDir => node_path.resolve(`${sourceDir}/.wmproject.properties`);
 const geti18nDir = sourceDir => path.resolve(`${sourceDir}/i18n`);
 const getGenNgDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}`);
 const getTargetDir = sourceDir => path.resolve(`${sourceDir}/target`);
@@ -40,7 +46,7 @@ const getServiceDefsDir = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/
 const getNgBundle = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist/ng-bundle`);
 const getComponentName = name => `${upperFirst(name)}Component`;
 
-const WMPropsObj = {};
+global.WMPropsObj = {};
 
 const isEmpty = (obj) => Object.keys(obj).length === 0;
 
@@ -97,8 +103,8 @@ const convertToCamelCase = (inputString) => {
 }
 
 const getWMPropsObject = async(sourceDir) => {
-	if(!isEmpty(WMPropsObj)) {
-		return WMPropsObj;
+	if(!isEmpty(global.WMPropsObj)) {
+		return global.WMPropsObj;
 	} else {
 		let wmProps = getWMProjectPropsFile(sourceDir);
 		const code = fs.readFileSync(wmProps, 'utf8');
@@ -113,19 +119,74 @@ const getWMPropsObject = async(sourceDir) => {
 						} else if (property.key.type === 'Literal') {
 							key = property.key.value;
 						}
-						WMPropsObj[key] = property.value.value;
+						global.WMPropsObj[key] = property.value.value;
 					});
 				}
 			}
 		});
-		return WMPropsObj;
+		return global.WMPropsObj;
 	}
 }
 
-const getPrefabName = async(sourceDir) => {
+const getWMPropsFromXml = async(sourceDir) => {
+	if(!isEmpty(global.WMPropsObj)) {
+		return global.WMPropsObj;
+	} else {
+		const parser = new xml2js.Parser();
+		let wmPropsXmlFile = getWMPropertiesXml(sourceDir);
+		const wmPropsXmlData = fs.readFileSync(wmPropsXmlFile, 'utf-8');
+		let wmPropsJsonData = {};
+		parser.parseString(wmPropsXmlData, (err, result) => {
+			if (err) {
+				throw err;
+			}
+			wmPropsJsonData = result;
+		});
+		if (wmPropsJsonData.properties.entry) {
+			wmPropsJsonData.properties.entry.forEach(entry => {
+				const key = entry.$.key;
+				const value = entry._ ? entry._.trim() : '';
+				global.WMPropsObj[key] = value;
+			});
+		}
+		return global.WMPropsObj;
+	}
+}
+
+const getAppName = async(sourceDir) => {
 	let propsObj = await getWMPropsObject(sourceDir);
 	return propsObj['name'];
 };
+
+const logAppRuntimeVersion = async(sourceDir) => {
+	const pomContent = fs.readFileSync(getPOMXml(sourceDir), "utf8");
+	const RUNTIME_TAG_BEGIN = `<wavemaker.app.runtime.ui.version>`;
+	const RUNTIME_TAG_END = `</wavemaker.app.runtime.ui.version>`;
+	let pVersion = '';
+	let vStart = pomContent.indexOf(RUNTIME_TAG_BEGIN),
+		vEnd = pomContent.indexOf(RUNTIME_TAG_END);
+	if (vStart && vEnd) {
+		vStart = vStart + RUNTIME_TAG_BEGIN.length;
+		pVersion = pomContent.substr(vStart, vEnd - vStart).trim();
+	}
+	global.appRuntimeVersion = pVersion;
+
+	log(`App RuntimeVersion : ${global.appRuntimeVersion}`);
+}
+
+const logProjectMetadata = async(sourceDir) => {
+	let propsObj = await getWMPropsFromXml(sourceDir);
+	log("*************************************************************");
+	log("Project Metadata");
+	log("*************************************************************");
+	log(`Display Name: ${propsObj['displayName']}`);
+	log(`Platform Type: ${propsObj['platformType']}`);
+	log(`Application Type: ${propsObj['type']}`);
+	log(`Application Version: ${propsObj['version']}`);
+	log(`Application HomePage: ${propsObj['homePage']}`);
+	await logAppRuntimeVersion(sourceDir);
+	log("*************************************************************");
+}
 
 module.exports = {
 	WEB_COMPONENT_APP_DIR,
@@ -142,6 +203,8 @@ module.exports = {
 	getProfilesDir,
 	getResourceFilesDir,
 	getWMProjectPropsFile,
+	getPOMXml,
+	getWMPropertiesXml,
 	getPackageJson,
 	getPackageLockJson,
 	getAngularJson,
@@ -149,13 +212,17 @@ module.exports = {
 	geti18nDir,
 	getTargetDir,
 	getWCAppDir,
+	getBuildScriptsDir,
 	getNgBundle,
 	getPagesDir,
+	getPartialsDir,
+	getPagesConfigJson,
 	getServiceDefsDir,
 	getGenNgDir,
 	validateProject,
-	getPrefabName,
+	getAppName,
 	getWMPropsObject,
 	getComponentName,
-	convertToCamelCase
+	convertToCamelCase,
+	logProjectMetadata
 }

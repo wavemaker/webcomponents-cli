@@ -3,9 +3,8 @@ export class AppModule implements DoBootstrap {
     constructor(private injector: Injector) {}
 
     ngDoBootstrap() {
-        console.log("--------bootstraping webcomponent---------")
-        const mainComponent = createCustomElement(MainComponent, { injector: this.injector });
-        customElements.define('wmp-{{prefabName}}', mainComponent);
+        console.log("--------bootstraping webcomponent---------");
+        {{{webComponents}}}
     }
 
 }

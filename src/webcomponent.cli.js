@@ -4,14 +4,15 @@ const {
 	updatePackageJson,
 	updateAngularJson,
 	updateMainTsFile,
-	updateModule,
+	updateAppModule,
 	updateMainFile,
-	updatePrefabFile,
+	updateComponentFiles,
 	generateDist
 } = require('./update.project');
 const { printFailure, updateStatus, endStatus, printHeader, initStatus} = require('./console.utils');
 const { initTemplates } = require('./template.helpers');
 const { initMaven } = require('./maven.utils');
+const { logProjectMetadata } = require("./utils");
 
 const argv = require("yargs")
 	.usage("Usage: $0 -s [source WaveMaker Prefab project path]")
@@ -37,9 +38,11 @@ const addNgElementToApp = async (source) => {
 	await updatePackageJson(source);
 	await updateAngularJson(source);
 	await updateMainTsFile(source);
-	await updateModule(source, source);
-	await updateMainFile(source);
-	await updatePrefabFile(source);
+	await updateAppModule(source, source);
+	if(global.WMPropsObj.type === "PREFAB") {
+		await updateMainFile(source);
+	}
+	await updateComponentFiles(source);
 
 	updateStatus(`Generating the dist...`);
 	await generateDist(source);
@@ -47,6 +50,7 @@ const addNgElementToApp = async (source) => {
 
 (async () => {
 	printHeader();
+	await logProjectMetadata(argv.source);
 	initStatus();
 	try {
 		if (argv.source) {
@@ -55,7 +59,7 @@ const addNgElementToApp = async (source) => {
 			updateStatus(`Compiling the java sources...`);
 			await initMaven(argv.source);
 
-			updateStatus(`Transpiling the Prefab project...`);
+			updateStatus(`Transpiling the Project...`);
 			await addNgElementToApp(argv.source);
 		}
 	} catch (e) {

@@ -22,7 +22,7 @@ export class WMInterceptor implements HttpInterceptor {
         let servicedefsReq = request.url.indexOf("servicedefs") !== -1;
 
         //@ts-ignore
-        let apiUrl = WM_APPS_META["{{prefabName}}"].apiUrl, artifactsUrl = WM_APPS_META["{{prefabName}}"].artifactsUrl;
+        let apiUrl = WM_APPS_META["{{appName}}"].apiUrl, artifactsUrl = WM_APPS_META["{{appName}}"].artifactsUrl;
         if (redirectToWm) {
             if(isi18nReq || servicedefsReq) {
                 let fileName = request.url.split("/").pop();

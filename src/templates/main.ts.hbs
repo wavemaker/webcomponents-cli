@@ -1,0 +1,73 @@
+import { ApplicationRef, enableProdMode, NgModuleRef } from '@angular/core';
+import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+
+import { Router } from '@angular/router';
+
+import { AppModule } from './app/app.module';
+import { environment } from './environments/environment';
+
+import initWmProjectProperties from './app/wm-project-properties';
+
+initWmProjectProperties();
+
+if (environment.production) {
+    enableProdMode();
+}
+
+let wcAppName = '';
+
+{{{mountStyles}}}
+
+document.addEventListener('DOMContentLoaded', () => {
+new Promise<Event | void>( resolve => {
+    if (window['cordova']) {
+        document.addEventListener('deviceready', resolve);
+    } else {
+        resolve();
+    }
+    }).then(() => platformBrowserDynamic().bootstrapModule(AppModule))
+    .then((appModuleRef: NgModuleRef<AppModule>) => {
+        //default page to be rendered if nothing passed
+        let pageNameConfigured = "Main";
+
+        const router = appModuleRef.injector.get(Router);
+
+        function initializeComponent(retries = 0, maxRetries = 10) {
+            let appComponentElement = document.querySelector(`wm-${wcAppName}`);
+            if (appComponentElement) {
+                const componentInstance = (appComponentElement as any).ngElementStrategy?.componentRef;
+                const appRef = appModuleRef.injector.get(ApplicationRef);
+                pageNameConfigured = appComponentElement.getAttribute("pageName");
+                console.log("pageNameConfigured : ", pageNameConfigured);
+                router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
+            } else if (retries < maxRetries) {
+                setTimeout(function() {
+                    console.log(`Retry ${retries + 1}: trying again to find the component`);
+                    initializeComponent(retries + 1, maxRetries);
+                }, 100);
+            } else {
+                console.error(`Maximum retries reached. Unable to find WebComponent wm-${wcAppName}`);
+            }
+        }
+        let currentUrl = window.location.pathname;
+
+        const observer = new MutationObserver((mutations) => {
+            const newUrl = window.location.pathname;
+            if (newUrl !== currentUrl) {
+                console.log(`Detected URL change from the current url - ${currentUrl} to the new url - ${newUrl}`);
+                currentUrl = newUrl;
+                initializeComponent();
+            }
+        });
+        // Configure the observer to watch for DOM changes
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        initializeComponent();
+
+        const applicationRef = appModuleRef.injector.get(ApplicationRef);
+        window.addEventListener('unload', () => {
+            applicationRef.components.map(c => c && c.destroy());
+        });
+        console.timeEnd('bootstrap'), err => console.log(err);
+        }, err => console.log(err));
+    });

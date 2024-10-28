@@ -7,6 +7,8 @@ const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const readFile = util.promisify(fs.readFile);
 const { log, error } = require("./console.utils");
+global.pagesList = [];
+global.allPagesList = [];
 
 const {
 	WEB_COMPONENT_APP_DIR,
@@ -22,12 +24,13 @@ const {
 	getAppModule,
 	getMainComponentTemplate,
 	getMainTs,
+	getBuildScriptsDir,
 	getNgBundle,
 	getPackageJson,
 	getPackageLockJson,
 	getPrefabsDir,
 	getResourceFilesDir,
-	getPrefabName,
+	getAppName,
 	convertToCamelCase,
 	getWMPropsObject,
 	getGenNgDir,
@@ -35,7 +38,7 @@ const {
 	geti18nDir,
 	getPagesDir,
 	getServiceDefsDir,
-	getWCAppDir, getTargetDir
+	getWCAppDir, getTargetDir, getPagesConfigJson, getPartialsDir
 } = require('./utils');
 
 const { getHandlebarTemplate, safeString } = require('./template.helpers');
@@ -43,13 +46,14 @@ const node_path = require("path");
 
 const generateNgCode = async (sourceDir) => {
 	let targetDir = node_path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
+	let wmNgCodegenPkg = global.WMPropsObj.type === "PREFAB" ? '@wavemaker/angular-codegen@11.5.0-next.141661' : `@wavemaker/angular-codegen@${global.appRuntimeVersion}`;
 	try {
 		fs.mkdirSync(targetDir);
-		log(`Target directory '${targetDir}' created successfully!`);
-		await execCommand(`cd ${sourceDir} && npm i --prefix . @wavemaker/angular-codegen@11.5.0-next.141661 --no-save --no-package-lock`);
+		// log(`Target directory '${targetDir}' created successfully!`);
+		await execCommand(`cd ${sourceDir} && npm i --prefix . ${wmNgCodegenPkg} --no-save --no-package-lock`);
 	} catch (err) {
 		if (err.code === 'EEXIST') {
-			await execCommand(`cd ${sourceDir} && npm i --prefix . @wavemaker/angular-codegen@11.5.0-next.141661 --no-save --no-package-lock`);
+			await execCommand(`cd ${sourceDir} && npm i --prefix . ${wmNgCodegenPkg} --no-save --no-package-lock`);
 			//log(`target directory '${targetDir}' already exists.`);
 		} else {
 			error(`Error creating directory: ${err.message}`);
@@ -60,20 +64,25 @@ const generateNgCode = async (sourceDir) => {
 }
 
 const getUpdatedFileForPublishing = async(sourceDir, packageJson) => {
-	let prefabName = await getPrefabName(sourceDir);
-	prefabName = prefabName.toLowerCase();
+	let appName = await getAppName(sourceDir);
+	appName = appName.toLowerCase();
 
-	packageJson["name"] = `@wavemaker/wmp-${prefabName}`;
+	packageJson["name"] = `@wavemaker/wm-${appName}`;
 	packageJson["private"] = false;
-	packageJson["main"] = `dist/ng-bundle/wmp-${prefabName}.js`;
+	packageJson["main"] = `dist/ng-bundle/wm-${appName}.js`;
 	packageJson["files"] = ["dist/ng-bundle/**/*"];
 
 	return packageJson;
 }
 
+const isBuildJsFilePresent = async(sourceDir) => {
+	let buildJsFile = `${getBuildScriptsDir(sourceDir)}/build.js`;
+	return fs.existsSync(buildJsFile);
+}
+
 const updatePackageJson = async(sourceDir) => {
-	let prefabName = await getPrefabName(sourceDir);
-	prefabName = prefabName.toLowerCase();
+	let appName = await getAppName(sourceDir);
+	appName = appName.toLowerCase();
 
 	const packageJsonFile = getPackageJson(sourceDir);
 	let packageJson = readFileSync(packageJsonFile, true);
@@ -81,9 +90,15 @@ const updatePackageJson = async(sourceDir) => {
 	packageJson = await getUpdatedFileForPublishing(sourceDir, packageJson);
 
 	const scriptsConfig = packageJson['scripts'];
-	scriptsConfig["build:wcd"] = "node build-scripts/build.js";
-	scriptsConfig["build:wc"] = "node build-scripts/build.js --c=production --output-hashing=none";
-	scriptsConfig["postbuild:wcd"] = scriptsConfig["postbuild:wc"] = `node build-scripts/post-build-ng-element.js --name=${prefabName}`;
+	//check for old projects where build.js is not there. Build.js is present in projects with buildonce deploy anywhere feature
+	if(await isBuildJsFilePresent(sourceDir)) {
+		scriptsConfig["build:wcd"] = "node build-scripts/build.js";
+		scriptsConfig["build:wc"] = "node build-scripts/build.js --c=production --output-hashing=none";
+	} else {
+		scriptsConfig["build:wcd"] = "./node_modules/.bin/ng build";
+		scriptsConfig["build:wc"] = "./node_modules/.bin/ng build --c=production --output-hashing=none";
+	}
+	scriptsConfig["postbuild:wcd"] = scriptsConfig["postbuild:wc"] = `node build-scripts/post-build-ng-element.js --name=${appName}`;
 
 	removeCordovaPlugins(packageJson);
 
@@ -126,8 +141,8 @@ const copyWebComponentArtifacts = async sourceDir => {
 
 const installDeps = async sourceDir => {
 	await execCommand(`cd ${getWCAppDir(sourceDir)}`);
-	//const file = getPackageLockJson(sourceDir);
-	//rimraf.sync(file);
+	const file = getPackageLockJson(sourceDir);
+	rimraf.sync(file);
 	await execCommand(`cd ${getWCAppDir(sourceDir)} && npm i`);
 }
 
@@ -169,6 +184,7 @@ const updateAngularJson = async(sourceDir) => {
 	});
 
 	build["configurations"]["production"]["vendorChunk"] = true;
+	build["configurations"]["production"]["outputHashing"] = "none";
 	build["configurations"]["development"]["vendorChunk"] = true;
 	//keep this till it stabilises. if prod required pass it as a param to build script (--c=production)
 	build["defaultConfiguration"] = "development";
@@ -178,37 +194,110 @@ const updateAngularJson = async(sourceDir) => {
 };
 
 const updateMainTsFile = async(sourceDir) => {
-	let prefabName = await getPrefabName(sourceDir);
-	prefabName = prefabName.toLowerCase();
+	let appName = await getAppName(sourceDir);
+	appName = appName.toLowerCase();
 
-	const mainTemplate = getMainTs(sourceDir);
+	const mainTs = getMainTs(sourceDir);
+
 	const template = getHandlebarTemplate('mount-files');
-	const mountStyles = template({prefabName});
+	const mountStyles = template({appName});
+
+	const mainTemplate = getHandlebarTemplate('main-ts');
+	const mainTsFileContent = mainTemplate({mountStyles});
 
 	try {
-		fs.appendFileSync(mainTemplate, mountStyles);
-		//log('String appended to file successfully.');
+		fs.writeFileSync(mainTs, mainTsFileContent);
 	} catch (err) {
 		console.error('Error appending to file:', err);
 	}
 };
 
-const updateModuleClass = (appModule, prefabName) => {
-	let modDecl = `export class AppModule {}`;
-	const template = getHandlebarTemplate('app-module');
-	const modifiedDecl = template({prefabName});
+const getAppPagesList = async (sourceDir) => {
+	if(global.pagesList.length) {
+		return global.pagesList;
+	} else {
+		if(global.WMPropsObj.type === "PREFAB") {
+			global.pagesList.push('Main')
+		} else {
+			let pagesConfig = getPagesConfigJson(sourceDir);
+			let pagesData = fs.readFileSync(`${pagesConfig}`, 'utf8');
+			let pagesConfigList = JSON.parse(pagesData);
+			for (const pageObj of pagesConfigList) {
+				if (pageObj.type === "PAGE") {
+					global.pagesList.push(pageObj.name)
+				}
+			}
+			return global.pagesList;
+		}
+	}
+}
 
+const getAllPagesList = async (sourceDir) => {
+	if(global.allPagesList.length) {
+		return global.allPagesList;
+	} else {
+		if(global.WMPropsObj.type === "PREFAB") {
+			global.allPagesList.push('Main')
+		} else {
+			let pagesConfig = getPagesConfigJson(sourceDir);
+			let pagesData = fs.readFileSync(`${pagesConfig}`, 'utf8');
+			let pagesConfigList = JSON.parse(pagesData);
+			for (const pageObj of pagesConfigList) {
+				global.allPagesList.push(pageObj)
+			}
+			return global.allPagesList;
+		}
+	}
+}
+
+const defineWebComponents = async (sourceDir, appName) => {
+	let webComponents = `
+		const appComp \= createCustomElement(AppComponent, { injector: this.injector });
+		customElements.define(\'wm-${appName}\', appComp);
+	`;
+	let pagesList = [];//await getAppPagesList(sourceDir);
+	pagesList.forEach(pageName => {
+		let pName = pageName.toLowerCase();
+		pageName = pageName[0].toUpperCase() + pageName.slice(1);
+		webComponents += `
+			const ${pName}Comp \= createCustomElement(${pageName}Component, { injector: this.injector });
+			customElements.define(\'wm-${appName}-${pName}\', ${pName}Comp);
+		`;
+		//log(`WEBCOMPONENT NAME | wm-${appName}-${pName}`);
+	});
+	return webComponents;
+}
+
+const updateModuleImports = async (sourceDir, appModule) => {
+	let moduleImports = `WM_MODULES_FOR_ROOT,
+        AppCodeGenModule,`;
+	let pagesList = [];//await getAppPagesList(sourceDir);
+	pagesList.forEach(pageName => {
+		pageName = pageName[0].toUpperCase() + pageName.slice(1);
+		moduleImports += `${pageName}Module,
+		`;
+	});
+	let replaceStr = `WM_MODULES_FOR_ROOT,
+        AppCodeGenModule,`;
+	appModule = appModule.replace(replaceStr, moduleImports);
+	return appModule;
+}
+
+const updateModuleClass = async (sourceDir, appModule, appName) => {
+	let modDecl = `export class AppModule {}`;
+	let webComponents = await defineWebComponents(sourceDir, appName);
+	const template = getHandlebarTemplate('app-module');
+	const modifiedDecl = template({webComponents});
 	let updatedModule = appModule.replace(modDecl, modifiedDecl);
 
 	let emptyComp = ``;
 	let appComp = `bootstrap: [AppComponent]`;
-	//no need for default angular bootstraping. will use ngDoBootstrap hook to do custom bootstraping
+	//no need for default angular bootstrapping. will use ngDoBootstrap hook to do custom bootstrapping
 	updatedModule = updatedModule.replace(appComp, emptyComp);
-
 	return updatedModule;
 };
 
-const updateAppModuleProviders = (data, prefabNam) => {
+const updateAppModuleProviders = (data, appName) => {
 	let provRegex = /providers(\s)*:(\s)*\[/;
 	let sInterceptor = `providers: [\n
   {
@@ -218,7 +307,7 @@ const updateAppModuleProviders = (data, prefabNam) => {
   },\n
   {
       provide: PREFAB_NAME,
-      useValue: "${prefabNam}",
+      useValue: "${appName}",
   },\n
   {
    provide: APP_INITIALIZER,
@@ -230,18 +319,35 @@ const updateAppModuleProviders = (data, prefabNam) => {
 	return data;
 };
 
-const updateImports = data => {
+const getComponentImports = async(sourceDir) => {
+	let pagesList = [];//await getAppPagesList(sourceDir);
+	let componentImports = '';
+	pagesList.forEach(pageName => {
+		let capPageName = pageName[0].toUpperCase() + pageName.slice(1);
+		if(global.WMPropsObj.type === "PREFAB") {
+			componentImports += `import { ${capPageName}Component } from \"./pages/${pageName}/${pageName}.component\";`;
+		} else {
+			componentImports += `
+				import { ${capPageName}Module } from \'./pages/${pageName}/${pageName}.module\';
+				import { ${capPageName}Component } from \"./pages/${pageName}/${pageName}.component\";
+			`;
+		}
+	});
+	return componentImports;
+}
+
+const updateImports = async (sourceDir, data) => {
 	const template = getHandlebarTemplate('imports');
-	const contents = template({});
+	let componentImports = await getComponentImports(sourceDir);
+	const contents = template({componentImports});
 	return `${contents}\n${data}`;
 }
 
-const updateInterceptor = (data, prefabName) => {
+const updateInterceptor = (data, appName) => {
 	const template = getHandlebarTemplate('interceptor');
-	const contents = template({prefabName});
+	const contents = template({appName});
 	return `${contents}\n${data}`;
 }
-
 
 const getPrefabsUsedInApp = async (projectPath) => {
 	let prefabsUsedInProject = [];
@@ -260,7 +366,7 @@ const getPrefabsUsedInApp = async (projectPath) => {
 		}, () => Promise.resolve(prefabsUsedInProject))
 };
 
-const updateAppModuleWithPrefabUrls = async (sourceDir, prefabName) => {
+const updateAppModuleWithPrefabUrls = async (sourceDir, appName) => {
 	let moduleData = fs.readFileSync(getAppModule(sourceDir), "utf-8");
 	await getPrefabsUsedInApp(sourceDir).then(function(prefabs) {
 		if(!prefabs.length) {
@@ -272,7 +378,7 @@ const updateAppModuleWithPrefabUrls = async (sourceDir, prefabName) => {
         import { getPrefabConfig } from '../framework/util/page-util';
         export function downloadPrefabsScripts() {
 			//@ts-ignore
-			let prefabBaseUrl = WM_APPS_META["${prefabName}"].apiUrl + "/app/prefabs";
+			let prefabBaseUrl = WM_APPS_META["${appName}"].apiUrl + "/app/prefabs";
 			let usedPrefabs = ${prefabsStr};
 			usedPrefabs.forEach(function(prefabName){
 				let prefabConfig = getPrefabConfig(prefabName);
@@ -287,22 +393,23 @@ const updateAppModuleWithPrefabUrls = async (sourceDir, prefabName) => {
 	});
 };
 
-const updateModule = async(sourceDir) => {
+const updateAppModule = async(sourceDir) => {
 	const appModuleFile = getAppModule(sourceDir);
 	let appModule = fs.readFileSync(appModuleFile, 'utf8');
 
-	let prefabName = await getPrefabName(sourceDir);
-	prefabName = prefabName.toLowerCase();
-
-	appModule = updateModuleClass(appModule, prefabName);
-	appModule = updateAppModuleProviders(appModule, prefabName);
-	appModule = updateImports(appModule);
-	appModule = updateInterceptor(appModule, prefabName);
+	let appName = await getAppName(sourceDir);
+	appName = appName.toLowerCase();
+	appModule = await updateModuleClass(sourceDir, appModule, appName);
+	appModule = await updateModuleImports(sourceDir, appModule);
+	appModule = updateAppModuleProviders(appModule, appName);
+	appModule = await updateImports(sourceDir, appModule);
+	appModule = updateInterceptor(appModule, appName);
 	await fs.writeFileSync(appModuleFile, appModule);
 
-	await updateAppModuleWithPrefabUrls(sourceDir, prefabName);
+	await updateAppModuleWithPrefabUrls(sourceDir, appName);
 
-	log(`WEBCOMPONENT NAME | wmp-${prefabName}`);
+	log(`WEBCOMPONENT NAME | wm-${appName}`);
+
 };
 
 
@@ -325,17 +432,21 @@ const updateMainFile = async(sourceDir) => {
 	await fs.writeFileSync(mainCompTemplate, mainHtml);
 };
 
-const updatePrefabFile = async(sourceDir) => {
-	let prefabName = await getPrefabName(sourceDir)
-	prefabName = prefabName.toLowerCase();
-	prefabName = convertToCamelCase(prefabName);
+const updateComponentFiles = async(sourceDir) => {
+	let allPagesList = await getAllPagesList(sourceDir);
+	allPagesList.forEach(pageObj => {
+		let pageName = pageObj.name;
+		let pName = pageName.toLowerCase();
+		pageName = pageName[0].toUpperCase() + pageName.slice(1);
+		let pagePath = pageObj.type === "PAGE" ? `${getPagesDir(sourceDir)}` : ((pageObj.type === "PARTIAL" || pageObj.type === "HEADER" || pageObj.type === "TOPNAV" || pageObj.type === "FOOTER" || pageObj.type === "RIGHTNAV" || pageObj.type === "LEFTNAV" || pageObj.type === "POPOVER") ? `${getPartialsDir(sourceDir)}` : `${getPrefabsDir(sourceDir)}`);
+		let path = global.WMPropsObj.type === "PREFAB" ? `${getPrefabsDir(sourceDir)}` : `${pagePath}`;
+		const pageCompTemplate = `${path}/${pName}/${pageName}.component.html`;
+		let pageHtml = fs.readFileSync(pageCompTemplate, 'utf8');
 
-	const prefabCompTemplate = `${getPrefabsDir(sourceDir)}/${prefabName}/${prefabName}.component.html`;
-	let prefabHtml = fs.readFileSync(prefabCompTemplate, 'utf8');
-
-	//just ignore custom scripts. They are already bundles in the scripts.js
-	prefabHtml = prefabHtml.replace(`scripts-to-load=`, `custom-scripts-to-load=`);
-	await fs.writeFileSync(prefabCompTemplate, prefabHtml);
+		//just ignore custom scripts. They are already bundles in the scripts.js
+		pageHtml = pageHtml.replace(`scripts-to-load=`, `custom-scripts-to-load=`);
+		fs.writeFileSync(pageCompTemplate, pageHtml);
+	});
 };
 
 const copyWebComponentBuildFiles = async (sourceDir) => {
@@ -353,11 +464,11 @@ const copyWebpackConfigFiles = async (sourceDir) => {
 };
 
 const copyResourceFiles = async (sourceDir) => {
-	let prefabName = await getPrefabName(sourceDir);
+	let appName = await getAppName(sourceDir);
 
 	let mvnTargetDir = getTargetDir(sourceDir);
 
-	let sourceI18nDir = `${mvnTargetDir}/${prefabName}/resources/i18n`;
+	let sourceI18nDir = `${mvnTargetDir}/${appName}/resources/i18n`;
 	const i18nFiles = fs.readdirSync(sourceI18nDir);
 	let destI18nDir = getResourceFilesDir(sourceDir);
 
@@ -482,8 +593,8 @@ module.exports = {
 	updatePackageJson,
 	updateAngularJson,
 	updateMainTsFile,
-	updateModule,
+	updateAppModule,
 	updateMainFile,
-	updatePrefabFile,
+	updateComponentFiles,
 	generateDist
 }

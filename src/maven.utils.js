@@ -35,7 +35,9 @@ const replaceUIBuildJS = async (sourceDir) => {
  */
 const initMaven = async (sourceDir) => {
 	//await updateProfiles(sourceDir);
-	await replaceUIBuildJS(sourceDir);
+	if(global.WMPropsObj.type === "PREFAB") {
+		await replaceUIBuildJS(sourceDir);
+	}
 	await invokeMaven(sourceDir);
 }
 

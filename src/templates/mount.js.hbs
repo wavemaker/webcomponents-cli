@@ -1,4 +1,5 @@
-(function(prefabName) {
+(function(appName) {
+    wcAppName = appName;
     const mountStyle = (styleSheetUrl) => {
         var head  = document.getElementsByTagName('head')[0];
         var link  = document.createElement('link');
@@ -13,11 +14,11 @@
         let styles= ["wm-styles.css", "styles.css"];
         styles.map(function(stylesheet) {
             //@ts-ignore
-            let artifactsUrl = WM_APPS_META[prefabName].artifactsUrl;
+            let artifactsUrl = WM_APPS_META[appName].artifactsUrl;
             artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl)
             mountStyle(artifactsUrl + '/' + stylesheet);
         });
     }
 
     mountStyles();
-})("{{prefabName}}")
+})("{{appName}}")
