@@ -64,6 +64,18 @@ new Promise<Event | void>( resolve => {
 
         initializeComponent();
 
+        document.addEventListener('click', (event: MouseEvent) => {
+            //@ts-ignore
+            let target = event.target.parentNode;
+            target = target as HTMLElement;
+            const externalAttr = target.getAttribute('external');
+
+            if (target.tagName === 'A' && externalAttr) {
+                //event.preventDefault();
+                window.parent.postMessage({ type: 'NAVIGATE', externalAttr }, '*');
+            }
+        });
+
         const applicationRef = appModuleRef.injector.get(ApplicationRef);
         window.addEventListener('unload', () => {
             applicationRef.components.map(c => c && c.destroy());
