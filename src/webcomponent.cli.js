@@ -14,6 +14,8 @@ const { initTemplates } = require('./template.helpers');
 const { initMaven } = require('./maven.utils');
 const { logProjectMetadata } = require("./utils");
 
+const path = require('path');
+
 const argv = require("yargs")
 	.usage("Usage: $0 -s [source WaveMaker Prefab project path]")
 	.options({
@@ -48,8 +50,16 @@ const addNgElementToApp = async (source) => {
 	await generateDist(source);
 };
 
+const convertToAbsolutePath = async (source) => {
+	if (path.isAbsolute(source)) {
+		return source;
+	}
+	return path.resolve(source);
+}
+
 (async () => {
 	printHeader();
+	argv.source = await convertToAbsolutePath(argv.source);
 	await logProjectMetadata(argv.source);
 	initStatus();
 	try {
