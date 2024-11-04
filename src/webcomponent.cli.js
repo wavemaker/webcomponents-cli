@@ -38,7 +38,7 @@ const addNgElementToApp = async (source) => {
 	await updatePackageJson(source);
 	await updateAngularJson(source);
 	await updateMainTsFile(source);
-	await updateAppModule(source, source);
+	await updateAppModule(source);
 	if(global.WMPropsObj.type === "PREFAB") {
 		await updateMainFile(source);
 	}

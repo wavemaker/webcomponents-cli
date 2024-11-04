@@ -314,6 +314,13 @@ const updateAppModuleProviders = (data, appName) => {
    useFactory: initMetadata,
    deps:[PREFAB_NAME],
    multi: true
+  },\n
+  SkipLocationChangeService,
+  {
+		provide: APP_INITIALIZER,
+		useFactory: initializeSkipLocationChange,
+		deps: [SkipLocationChangeService],
+		multi: true,
   },\n`;
 	data = data.replace(provRegex, sInterceptor);
 	return data;

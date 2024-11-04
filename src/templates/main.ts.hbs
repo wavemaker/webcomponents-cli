@@ -40,6 +40,9 @@ new Promise<Event | void>( resolve => {
                 pageNameConfigured = appComponentElement.getAttribute("pageName");
                 console.log("pageNameConfigured : ", pageNameConfigured);
                 router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
+                setTimeout(function() {
+                    appRef.tick();
+                }, 1000);
             } else if (retries < maxRetries) {
                 setTimeout(function() {
                     console.log(`Retry ${retries + 1}: trying again to find the component`);

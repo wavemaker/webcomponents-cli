@@ -45,3 +45,34 @@ export class WMInterceptor implements HttpInterceptor {
         return next.handle(request);
     }
 }
+
+import { Router, NavigationStart } from '@angular/router';
+
+@Injectable({
+    providedIn: 'root',
+})
+export class SkipLocationChangeService {
+    private isNavigatingWithSkipLocationChange = false;
+
+    constructor(private router: Router) {}
+
+    init() {
+        this.router.events.subscribe(event => {
+            if (event instanceof NavigationStart) {
+                if (!this.isNavigatingWithSkipLocationChange) {
+                    // Set the flag to prevent infinite loops
+                    this.isNavigatingWithSkipLocationChange = true;
+                    // Navigate with skipLocationChange
+                    this.router.navigateByUrl(event.url, { skipLocationChange: true });
+                } else {
+                    // Reset the flag after the navigation completes
+                    this.isNavigatingWithSkipLocationChange = false;
+                }
+            }
+        });
+    }
+}
+
+export function initializeSkipLocationChange(service: SkipLocationChangeService) {
+    return () => service.init();
+}
