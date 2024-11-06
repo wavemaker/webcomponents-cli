@@ -176,6 +176,7 @@ const logAppRuntimeVersion = async(sourceDir) => {
 
 const logProjectMetadata = async(sourceDir) => {
 	let propsObj = await getWMPropsFromXml(sourceDir);
+	global.propsObj = propsObj;
 	log("*************************************************************");
 	log("Project Metadata");
 	log("*************************************************************");
