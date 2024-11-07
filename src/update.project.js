@@ -456,7 +456,7 @@ const updateComponentFiles = async(sourceDir) => {
 		pageName = pageName[0].toUpperCase() + pageName.slice(1);
 		let pagePath = pageObj.type === "PAGE" ? `${getPagesDir(sourceDir)}` : ((pageObj.type === "PARTIAL" || pageObj.type === "HEADER" || pageObj.type === "TOPNAV" || pageObj.type === "FOOTER" || pageObj.type === "RIGHTNAV" || pageObj.type === "LEFTNAV" || pageObj.type === "POPOVER") ? `${getPartialsDir(sourceDir)}` : `${getPrefabsDir(sourceDir)}`);
 		let path = global.WMPropsObj.type === "PREFAB" ? `${getPrefabsDir(sourceDir)}` : `${pagePath}`;
-		const pageCompTemplate = `${path}/${pName}/${pageName}.component.html`;
+		const pageCompTemplate = `${path}/${pageName}/${pageName}.component.html`;
 		let pageHtml = fs.readFileSync(pageCompTemplate, 'utf8');
 
 		//just ignore custom scripts. They are already bundles in the scripts.js
