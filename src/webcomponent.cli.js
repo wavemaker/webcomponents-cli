@@ -67,7 +67,7 @@ const convertToAbsolutePath = async (source) => {
 			initTemplates();
 
 			updateStatus(`Compiling the java sources...`);
-			await initMaven(argv.source);
+			// await initMaven(argv.source);
 
 			updateStatus(`Transpiling the Project...`);
 			await addNgElementToApp(argv.source);

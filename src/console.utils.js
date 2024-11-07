@@ -21,7 +21,7 @@ const {version} = require("../package.json");
 
 const printHeader = () => {
 	log(green.bold(textSync("WaveMaker", {horizontalLayout: "fitted"})));
-	log(blue.bold(` * A CLI to convert WaveMaker Prefabs to WebComponents * `));
+	log(blue.bold(` * A CLI to convert WaveMaker Apps/Prefabs to WebComponents * `));
 	log(white.bold(`\n		www.wavemakeronline.com`));
 	log(white.bold(`		    version: ${version}\n`));
 }
