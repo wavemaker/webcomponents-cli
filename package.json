@@ -1,6 +1,6 @@
 {
   "name": "@wavemaker/webcomponents-cli",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "A CLI to convert WaveMaker Prefabs into WebComponents",
   "main": "index.js",
   "files": [
@@ -44,6 +44,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "archiver": "^7.0.1",
     "copy-webpack-plugin": "^12.0.2",
     "terser-webpack-plugin": "^5.3.10",
     "webpack": "5.76.1",

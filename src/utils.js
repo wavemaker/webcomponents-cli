@@ -18,6 +18,7 @@ const WEB_COMPONENT_APP_DIR = "generated-angular-app";
 const CUSTOM_WEBPACK_CONFIG_FILE = "wc-custom-webpack.config.js";
 
 const getWCAppDir = sourceDir => path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
+const getWCDistDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist/ng-bundle`);
 const getSrcDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/src`);
 const getBuildScriptsDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/build-scripts`);
 const getAppDir = sourceDir => path.resolve(`${getSrcDir(sourceDir)}/app`);
@@ -42,6 +43,7 @@ const getWMPropertiesXml = sourceDir => node_path.resolve(`${sourceDir}/.wmproje
 const geti18nDir = sourceDir => path.resolve(`${sourceDir}/i18n`);
 const getGenNgDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}`);
 const getTargetDir = sourceDir => path.resolve(`${sourceDir}/target`);
+const getWCZipFile = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/wc-artifact.zip`);
 const getServiceDefsDir = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/classes/servicedefs`);
 const getNgBundle = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist/ng-bundle`);
 const getComponentName = name => `${upperFirst(name)}Component`;
@@ -213,6 +215,8 @@ module.exports = {
 	geti18nDir,
 	getTargetDir,
 	getWCAppDir,
+	getWCDistDir,
+	getWCZipFile,
 	getBuildScriptsDir,
 	getNgBundle,
 	getPagesDir,

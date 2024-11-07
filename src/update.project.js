@@ -6,6 +6,8 @@ const fsp = require('fs').promises;
 const util = require("util");
 const exec = util.promisify(require("child_process").exec);
 const readFile = util.promisify(fs.readFile);
+const archiver = require('archiver');
+const node_path = require("path");
 const { log, error } = require("./console.utils");
 global.pagesList = [];
 global.allPagesList = [];
@@ -38,11 +40,10 @@ const {
 	geti18nDir,
 	getPagesDir,
 	getServiceDefsDir,
-	getWCAppDir, getTargetDir, getPagesConfigJson, getPartialsDir
+	getWCAppDir, getWCDistDir, getWCZipFile, getTargetDir, getPagesConfigJson, getPartialsDir
 } = require('./utils');
 
 const { getHandlebarTemplate, safeString } = require('./template.helpers');
-const node_path = require("path");
 
 const generateNgCode = async (sourceDir) => {
 	let targetDir = node_path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
@@ -124,19 +125,27 @@ const updatePackageJson = async(sourceDir) => {
 	await writeFile(packageJsonFile, JSON.stringify(packageJson, null, 4));
 };
 
-const copyWebComponentArtifacts = async sourceDir => {
-	/*const wcDistPath = `${sourceDir}/dist-wc`;
-	rimraf.sync(wcDistPath);
+const copyWebComponentArtifacts = async( sourceDir ) => {
+	return new Promise((resolve, reject) => {
+		let distDir = getWCDistDir(sourceDir);
+		let zipFile = getWCZipFile(sourceDir);
 
-	const bundlePath = getNgBundle(sourceDir);
-	let distFiles = ["wm-element.js", "main.js"];
-	distFiles.forEach(async function(fileName) {
-		await ncp(path.resolve(`${projectPath}/dist/ng-bundle/${fileName}`), path.join(wcDistPath, path.basename(fileName)), (err) => {
-			if (err) {
-				console.error(`Error copying ${projectPath}/dist/ng-bundle/${fileName} to ${wcDistPath}: ${err}`);
-			};
+		const output = fs.createWriteStream(zipFile);
+		const archive = archiver('zip', {
+			zlib: {level: 9}
 		});
-	})*/
+		output.on('close', () => {
+			console.log(`✅ Archive created successfully: ${zipFile}`);
+			console.log(`📦 Total bytes: ${archive.pointer()}`);
+			resolve();
+		});
+		archive.on('error', (err) => {
+			reject(err);
+		});
+		archive.pipe(output);
+		archive.directory(distDir, false);
+		archive.finalize();
+	});
 }
 
 const installDeps = async sourceDir => {
