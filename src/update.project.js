@@ -484,7 +484,7 @@ const copyResourceFiles = async (sourceDir) => {
 
 	let mvnTargetDir = getTargetDir(sourceDir);
 
-	let sourceI18nDir = `${mvnTargetDir}/${appName}/resources/i18n`;
+	let sourceI18nDir = `${mvnTargetDir}/ui-build/generated-app/resources/i18n`;
 	const i18nFiles = fs.readdirSync(sourceI18nDir);
 	let destI18nDir = getResourceFilesDir(sourceDir);
 
