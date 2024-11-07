@@ -453,7 +453,7 @@ const updateComponentFiles = async(sourceDir) => {
 	allPagesList.forEach(pageObj => {
 		let pageName = pageObj.name;
 		let pName = pageName.toLowerCase();
-		pageName = pageName[0].toUpperCase() + pageName.slice(1);
+		//pageName = pageName[0].toUpperCase() + pageName.slice(1);
 		let pagePath = pageObj.type === "PAGE" ? `${getPagesDir(sourceDir)}` : ((pageObj.type === "PARTIAL" || pageObj.type === "HEADER" || pageObj.type === "TOPNAV" || pageObj.type === "FOOTER" || pageObj.type === "RIGHTNAV" || pageObj.type === "LEFTNAV" || pageObj.type === "POPOVER") ? `${getPartialsDir(sourceDir)}` : `${getPrefabsDir(sourceDir)}`);
 		let path = global.WMPropsObj.type === "PREFAB" ? `${getPrefabsDir(sourceDir)}` : `${pagePath}`;
 		const pageCompTemplate = `${path}/${pageName}/${pageName}.component.html`;
