@@ -568,6 +568,7 @@ const generateServiceDefs = async (sourceDir) => {
 	let targetDir = getGenNgDir(sourceDir);
 	const template = getHandlebarTemplate('servicedefs');
 	let defs = global.WMPropsObj.type === "PREFAB" ? {} : await getMergedServiceDefs(sourceDir);
+	defs = defs ? defs : {}; // incase if there are no service defs
 	const contents = template({defs: safeString(JSON.stringify(defs, undefined, 4))});
 	await writeFile(`${targetDir}/resources/files/servicedefs`, contents);
 };
