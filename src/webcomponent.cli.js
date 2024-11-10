@@ -7,7 +7,8 @@ const {
 	updateAppModule,
 	updateMainFile,
 	updateComponentFiles,
-	generateDist
+	generateDist,
+	generateDummyUIBuildDir
 } = require('./update.project');
 const { printFailure, updateStatus, endStatus, printHeader, initStatus} = require('./console.utils');
 const { initTemplates } = require('./template.helpers');
@@ -48,6 +49,7 @@ const addNgElementToApp = async (source) => {
 
 	updateStatus(`Generating the dist...`);
 	await generateDist(source);
+	await generateDummyUIBuildDir(source);
 };
 
 const convertToAbsolutePath = async (source) => {

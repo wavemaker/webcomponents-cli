@@ -17,6 +17,7 @@ const  initTemplates = () => {
 	templates.set('wc-post-build', Handlebars.compile(fs.readFileSync(templatePath+'/post-build-ng-element.js.hbs', 'utf-8')))
 	templates.set('wc-ui-build', Handlebars.compile(fs.readFileSync(templatePath+'/wc-ui-build.js', 'utf-8')))
 	templates.set('servicedefs', Handlebars.compile(fs.readFileSync(templatePath+'/servicedefs.hbs', 'utf-8')))
+	templates.set('security-info', Handlebars.compile(fs.readFileSync(templatePath+'/info.hbs', 'utf-8')))
 	templates.set('wc-webpack-config', Handlebars.compile(fs.readFileSync(templatePath+'/wc-custom-webpack.config.js.hbs', 'utf-8')))
 };
 

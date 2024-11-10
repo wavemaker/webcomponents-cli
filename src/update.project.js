@@ -246,7 +246,11 @@ const getAllPagesList = async (sourceDir) => {
 		return global.allPagesList;
 	} else {
 		if(global.WMPropsObj.type === "PREFAB") {
-			global.allPagesList.push('Main')
+			global.allPagesList.push({
+				"name": "Main",
+				"type": "PAGE",
+				"params" : []
+			})
 		} else {
 			let pagesConfig = getPagesConfigJson(sourceDir);
 			let pagesData = fs.readFileSync(`${pagesConfig}`, 'utf8');
@@ -254,8 +258,8 @@ const getAllPagesList = async (sourceDir) => {
 			for (const pageObj of pagesConfigList) {
 				global.allPagesList.push(pageObj)
 			}
-			return global.allPagesList;
 		}
+		return global.allPagesList;
 	}
 }
 
@@ -267,7 +271,7 @@ const defineWebComponents = async (sourceDir, appName) => {
 	let pagesList = [];//await getAppPagesList(sourceDir);
 	pagesList.forEach(pageName => {
 		let pName = pageName.toLowerCase();
-		pageName = pageName[0].toUpperCase() + pageName.slice(1);
+		// pageName = pageName[0].toUpperCase() + pageName.slice(1);
 		webComponents += `
 			const ${pName}Comp \= createCustomElement(${pageName}Component, { injector: this.injector });
 			customElements.define(\'wm-${appName}-${pName}\', ${pName}Comp);
@@ -455,8 +459,8 @@ const updateComponentFiles = async(sourceDir) => {
 		let pName = pageName.toLowerCase();
 		//pageName = pageName[0].toUpperCase() + pageName.slice(1);
 		let pagePath = pageObj.type === "PAGE" ? `${getPagesDir(sourceDir)}` : ((pageObj.type === "PARTIAL" || pageObj.type === "HEADER" || pageObj.type === "TOPNAV" || pageObj.type === "FOOTER" || pageObj.type === "RIGHTNAV" || pageObj.type === "LEFTNAV" || pageObj.type === "POPOVER") ? `${getPartialsDir(sourceDir)}` : `${getPrefabsDir(sourceDir)}`);
-		let path = global.WMPropsObj.type === "PREFAB" ? `${getPrefabsDir(sourceDir)}` : `${pagePath}`;
-		const pageCompTemplate = `${path}/${pageName}/${pageName}.component.html`;
+		//let path = global.WMPropsObj.type === "PREFAB" ? `${getPrefabsDir(sourceDir)}` : `${pagePath}`;
+		const pageCompTemplate = `${pagePath}/${pageName}/${pageName}.component.html`;
 		let pageHtml = fs.readFileSync(pageCompTemplate, 'utf8');
 
 		//just ignore custom scripts. They are already bundles in the scripts.js
@@ -482,9 +486,7 @@ const copyWebpackConfigFiles = async (sourceDir) => {
 const copyResourceFiles = async (sourceDir) => {
 	let appName = await getAppName(sourceDir);
 
-	let mvnTargetDir = getTargetDir(sourceDir);
-
-	let sourceI18nDir = `${mvnTargetDir}/ui-build/generated-app/resources/i18n`;
+	let sourceI18nDir = geti18nDir(sourceDir);
 	const i18nFiles = fs.readdirSync(sourceI18nDir);
 	let destI18nDir = getResourceFilesDir(sourceDir);
 
@@ -565,9 +567,16 @@ const generateWmProjectProperties = async (properties, sourceDir) => {
 const generateServiceDefs = async (sourceDir) => {
 	let targetDir = getGenNgDir(sourceDir);
 	const template = getHandlebarTemplate('servicedefs');
-	let defs = await getMergedServiceDefs(sourceDir);
+	let defs = global.WMPropsObj.type === "PREFAB" ? {} : await getMergedServiceDefs(sourceDir);
 	const contents = template({defs: safeString(JSON.stringify(defs, undefined, 4))});
 	await writeFile(`${targetDir}/resources/files/servicedefs`, contents);
+};
+
+const generateSecurityInfo = async (sourceDir) => {
+	let targetDir = getGenNgDir(sourceDir);
+	const template = getHandlebarTemplate('security-info');
+	const contents = template();
+	await writeFile(`${targetDir}/resources/files/info`, contents);
 };
 
 const getMergedServiceDefs = async (sourceDir) => {
@@ -596,11 +605,26 @@ const generateDist = async(sourceDir) => {
 	await copyWebpackConfigFiles(sourceDir);
 
 	await generateServiceDefs(sourceDir);
+	await generateSecurityInfo(sourceDir);
 	await copyResourceFiles(sourceDir);
 
 	await installDeps(sourceDir);
 	await buildApp(sourceDir);
 	await copyWebComponentArtifacts(sourceDir);
+};
+
+const generateDummyUIBuildDir = async(sourceDir) => {
+	let targetDir = node_path.resolve(`${sourceDir}/target/ui-build/output-files`);
+	try {
+		fs.mkdirSync(targetDir, { recursive: true });
+		log(`Target directory '${targetDir}' created successfully!`);
+	} catch (err) {
+		if (err.code === 'EEXIST') {
+			log(`target directory '${targetDir}' already exists.`);
+		} else {
+			error(`Error creating directory: ${err.message}`);
+		}
+	}
 };
 
 module.exports = {
@@ -612,5 +636,6 @@ module.exports = {
 	updateAppModule,
 	updateMainFile,
 	updateComponentFiles,
-	generateDist
+	generateDist,
+	generateDummyUIBuildDir
 }
