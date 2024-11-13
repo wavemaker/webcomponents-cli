@@ -40,7 +40,7 @@ const {
 	geti18nDir,
 	getPagesDir,
 	getServiceDefsDir,
-	getWCAppDir, getWCDistDir, getWCZipFile, getTargetDir, getPagesConfigJson, getPartialsDir
+	getWCAppDir, getWCDistDir, getWCZipFile, getTargetDir, getUIResourcesDir, getPagesConfigJson, getPartialsDir
 } = require('./utils');
 
 const { getHandlebarTemplate, safeString } = require('./template.helpers');
@@ -463,7 +463,7 @@ const updateComponentFiles = async(sourceDir) => {
 		const pageCompTemplate = `${pagePath}/${pageName}/${pageName}.component.html`;
 		let pageHtml = fs.readFileSync(pageCompTemplate, 'utf8');
 
-		//just ignore custom scripts. They are already bundles in the scripts.js
+		//just ignore custom scripts. They are already bundled in the scripts.js
 		pageHtml = pageHtml.replace(`scripts-to-load=`, `custom-scripts-to-load=`);
 		fs.writeFileSync(pageCompTemplate, pageHtml);
 	});
@@ -566,18 +566,45 @@ const generateWmProjectProperties = async (properties, sourceDir) => {
 
 const generateServiceDefs = async (sourceDir) => {
 	let targetDir = getGenNgDir(sourceDir);
-	const template = getHandlebarTemplate('servicedefs');
-	let defs = global.WMPropsObj.type === "PREFAB" ? {} : await getMergedServiceDefs(sourceDir);
-	defs = defs ? defs : {}; // incase if there are no service defs
-	const contents = template({defs: safeString(JSON.stringify(defs, undefined, 4))});
-	await writeFile(`${targetDir}/resources/files/servicedefs`, contents);
+	let uiSourcesDir = getUIResourcesDir(sourceDir);
+	const sourcePath = join(uiSourcesDir, "servicedefs/app-servicedefs.json");
+	const destPath = join(targetDir, "resources/files/app-servicedefs.json");
+
+	if (!fs.existsSync(join(targetDir, "resources/files/"))) {
+		fs.mkdirSync(join(targetDir, "resources/files/"), { recursive: true });
+	}
+	//app servicedefs
+	const appServiceDefs = await fsp.readFile(join(uiSourcesDir, "servicedefs/app-servicedefs.json"), 'utf-8');
+	let appDefsContent =  JSON.parse(appServiceDefs);
+	try {
+		const template = getHandlebarTemplate('servicedefs');
+		const contents = template({defs: safeString(JSON.stringify(appDefsContent, undefined, 4))});
+		fs.writeFileSync(`${targetDir}/resources/files/app-servicedefs.json`, contents, "utf-8");
+		if(global.WMPropsObj.type === "PREFAB"){
+			fs.writeFileSync(`${targetDir}/resources/files/app-prefabs-${global.appName}-servicedefs.json`, contents, "utf-8");
+		}
+	} catch (err) {
+		error(`Error copying file ${sourcePath}: ${err}`);
+	}
+	//prefabs servicedefs
+	const prefabServiceDefs = await fsp.readFile(join(uiSourcesDir, "servicedefs/app-prefabs-servicedefs.json"), 'utf-8');
+	let prefabContent =  JSON.parse(prefabServiceDefs);
+	for (const [prefabName, defs] of Object.entries(prefabContent)) {
+		try {
+			const template = getHandlebarTemplate('servicedefs');
+			const contents = template({defs: safeString(JSON.stringify(defs, undefined, 4))});
+			fs.writeFileSync(`${targetDir}/resources/files/app-prefabs-${prefabName}-servicedefs.json`, contents, "utf-8");
+		} catch (err) {
+			error(`Error copying file ${sourcePath}: ${err}`);
+		}
+	}
 };
 
 const generateSecurityInfo = async (sourceDir) => {
 	let targetDir = getGenNgDir(sourceDir);
 	const template = getHandlebarTemplate('security-info');
 	const contents = template();
-	await writeFile(`${targetDir}/resources/files/info`, contents);
+	await writeFile(`${targetDir}/resources/files/info.json`, contents);
 };
 
 const getMergedServiceDefs = async (sourceDir) => {

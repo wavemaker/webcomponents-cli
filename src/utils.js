@@ -43,6 +43,7 @@ const getWMPropertiesXml = sourceDir => node_path.resolve(`${sourceDir}/.wmproje
 const geti18nDir = sourceDir => path.resolve(`${sourceDir}/i18n`);
 const getGenNgDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}`);
 const getTargetDir = sourceDir => path.resolve(`${sourceDir}/target`);
+const getUIResourcesDir = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/ui-resources`);
 const getWCZipFile = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/wc-artifact.zip`);
 const getServiceDefsDir = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/classes/servicedefs`);
 const getNgBundle = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist/ng-bundle`);
@@ -156,8 +157,12 @@ const getWMPropsFromXml = async(sourceDir) => {
 }
 
 const getAppName = async(sourceDir) => {
+	if(global.appName) {
+		return global.appName;
+	}
 	let propsObj = await getWMPropsObject(sourceDir);
-	return propsObj['name'];
+	global.appName = propsObj['name'];
+	return global.appName;
 };
 
 const logAppRuntimeVersion = async(sourceDir) => {
@@ -214,6 +219,7 @@ module.exports = {
 	getThemesConfigJson,
 	geti18nDir,
 	getTargetDir,
+	getUIResourcesDir,
 	getWCAppDir,
 	getWCDistDir,
 	getWCZipFile,
