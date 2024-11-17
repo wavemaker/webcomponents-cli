@@ -27,18 +27,24 @@ export class WMInterceptor implements HttpInterceptor {
         if (redirectToWm) {
             if(isi18nReq || servicedefsReq || infoReq) {
                 let fileName = request.url.split("/").pop();
+                artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl);
+                let reqUrl = artifactsUrl+'/'+fileName;
                 if(fileName === "servicedefs") {
                     fileName = "app-servicedefs.json";
                     let prefabNameRegex = request.url.match(/services\/prefabs\/([^/]+)\/servicedefs/);
                     if(prefabNameRegex) {
                         fileName = "app-prefabs-"+prefabNameRegex[1]+"-servicedefs.json"
                     }
+                    reqUrl = artifactsUrl+'/servicedefs/'+fileName
                 }
                 if(fileName === "info") {
                     fileName = "info.json";
+                    reqUrl = artifactsUrl+'/security/'+fileName
                 }
-                artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl)
-                request = request.clone({ url: artifactsUrl+'/'+fileName });
+                if(isi18nReq) {
+                    reqUrl = artifactsUrl+'/i18n/'+fileName
+                }
+                request = request.clone({ url: reqUrl });
             } else {
                 apiUrl = (apiUrl.slice(-1) === "/" ? apiUrl.slice(0, -1) : apiUrl)
                 request = request.clone({url:apiUrl+'/'+request.url});

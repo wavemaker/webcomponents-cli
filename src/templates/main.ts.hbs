@@ -60,9 +60,36 @@ new Promise<Event | void>( resolve => {
                 currentUrl = newUrl;
                 initializeComponent();
             }
+
+            // Iterate over all mutations to check for image src changes
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+                    const imgElement = mutation.target as HTMLImageElement;
+                    const currentSrc = imgElement.getAttribute('src');
+                    if (currentSrc) {
+                        //@ts-ignore
+                        const componentBaseUrl = WM_APPS_META[wcAppName].artifactsUrl;
+                        const resolvedSrc = new URL(currentSrc, componentBaseUrl).href;
+                        // Avoid re-triggering observer by temporarily disconnecting it
+                        observer.disconnect();
+
+                        imgElement.setAttribute('src', resolvedSrc);
+                        // Reconnect the observer after updating the src
+                        observer.observe(document.body, {
+                            childList: true,
+                            subtree: true,
+                            attributes: true
+                        });
+                    }
+                }
+            });
         });
         // Configure the observer to watch for DOM changes
-        observer.observe(document.body, { childList: true, subtree: true });
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true
+        });
 
         initializeComponent();
 
@@ -81,6 +108,9 @@ new Promise<Event | void>( resolve => {
         const applicationRef = appModuleRef.injector.get(ApplicationRef);
         window.addEventListener('unload', () => {
             applicationRef.components.map(c => c && c.destroy());
+        });
+        window.addEventListener('beforeunload', function() {
+            observer.disconnect();
         });
         console.timeEnd('bootstrap'), err => console.log(err);
         }, err => console.log(err));

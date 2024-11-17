@@ -186,11 +186,44 @@ const updateAngularJson = async(sourceDir) => {
 	delete buildOptions["indexTransform"];
 
 	//all the backend resources like i18n/en.json/servicedefs are placed here and move them to ng-bundle dir of the final dist
-	buildOptions["assets"].push({
-		"glob": "**/*",
-		"input": "resources/files/",
-		"output": "."
-	});
+	let otherAssets = [
+		{
+			"glob": "favicon.png",
+			"input": "resources/",
+			"output": "."
+		},
+		{
+			"glob": "font.config.js",
+			"input": "resources/",
+			"output": "."
+		},
+		{
+			"glob": "**/*",
+			"input": "resources/servicedefs/",
+			"output": "/servicedefs/"
+		},
+		{
+			"glob": "**/*",
+			"input": "resources/security/",
+			"output": "/security/"
+		},
+		{
+			"glob": "**/*",
+			"input": "resources/i18n/",
+			"output": "/i18n/"
+		},
+		{
+			"glob": "**/*",
+			"input": "resources/",
+			"output": "/resources/",
+			"ignore": [
+				"**/*.json",
+				"**/*.js",
+				"**/*.txt"
+			]
+		}
+	];
+	buildOptions["assets"].push(...otherAssets);
 
 	build["configurations"]["production"]["vendorChunk"] = true;
 	build["configurations"]["production"]["outputHashing"] = "none";
@@ -479,7 +512,9 @@ const copyWebComponentBuildFiles = async (sourceDir) => {
 const copyWebpackConfigFiles = async (sourceDir) => {
 	let targetDir = getGenNgDir(sourceDir);
 	const template = getHandlebarTemplate('wc-webpack-config');
-	const contents = template({});
+	let appName = await getAppName(sourceDir);
+	appName = "wm_" + appName.toLowerCase();
+	const contents = template({appName});
 	await writeFile(`${targetDir}/wc-custom-webpack.config.js`, contents);
 };
 
@@ -564,36 +599,79 @@ const generateWmProjectProperties = async (properties, sourceDir) => {
 	await writeFile(`${targetDir}/src/app/wm-project-properties.ts`, contents);
 };
 
+/**
+ * Recursively copy a directory synchronously with exclusions
+ * @param {string} src - The source directory
+ * @param {string} dest - The destination directory
+ * @param {string[]} exclude - List of directories or files to exclude
+ */
+function copyDirWithExclusionsSync(src, dest, exclude = []) {
+	// Create destination directory if it doesn't exist
+	if (!fs.existsSync(dest)) {
+		fs.mkdirSync(dest, { recursive: true });
+	}
+
+	// Read the contents of the source directory
+	const entries = fs.readdirSync(src, { withFileTypes: true });
+
+	for (const entry of entries) {
+		const srcPath = node_path.join(src, entry.name);
+		const destPath = node_path.join(dest, entry.name);
+
+		// Skip files/directories that are in the exclude list
+		if (exclude.includes(entry.name)) {
+			console.log(`Skipping: ${srcPath}`);
+			continue;
+		}
+
+		if (entry.isDirectory()) {
+			// Recursively copy the subdirectory
+			copyDirWithExclusionsSync(srcPath, destPath, exclude);
+		} else {
+			// Copy the file
+			fs.copyFileSync(srcPath, destPath);
+		}
+	}
+}
+
+const copyUIResources = async (sourceDir) => {
+	let uiResourcesDir = getUIResourcesDir(sourceDir);
+	let targetDir = `${getGenNgDir(sourceDir)}/resources`;
+	try {
+		copyDirWithExclusionsSync(uiResourcesDir, targetDir, ['resources']);
+		copyDirWithExclusionsSync(`${uiResourcesDir}/resources`, targetDir, []);
+		console.log(`Copied ${uiResourcesDir} to ${targetDir}`);
+	} catch (err) {
+		console.error(`Error copying directory...!!!: ${err}`);
+	}
+};
+
 const generateServiceDefs = async (sourceDir) => {
 	let targetDir = getGenNgDir(sourceDir);
-	let uiSourcesDir = getUIResourcesDir(sourceDir);
-	const sourcePath = join(uiSourcesDir, "servicedefs/app-servicedefs.json");
-	const destPath = join(targetDir, "resources/files/app-servicedefs.json");
+	let resourcesDir = `${getGenNgDir(sourceDir)}/resources`;
+	const sourcePath = join(resourcesDir, "servicedefs/app-servicedefs.json");
 
-	if (!fs.existsSync(join(targetDir, "resources/files/"))) {
-		fs.mkdirSync(join(targetDir, "resources/files/"), { recursive: true });
-	}
 	//app servicedefs
-	const appServiceDefs = await fsp.readFile(join(uiSourcesDir, "servicedefs/app-servicedefs.json"), 'utf-8');
+	const appServiceDefs = await fsp.readFile(join(resourcesDir, "servicedefs/app-servicedefs.json"), 'utf-8');
 	let appDefsContent =  JSON.parse(appServiceDefs);
 	try {
 		const template = getHandlebarTemplate('servicedefs');
 		const contents = template({defs: safeString(JSON.stringify(appDefsContent, undefined, 4))});
 		fs.writeFileSync(`${targetDir}/resources/files/app-servicedefs.json`, contents, "utf-8");
 		if(global.WMPropsObj.type === "PREFAB"){
-			fs.writeFileSync(`${targetDir}/resources/files/app-prefabs-${global.appName}-servicedefs.json`, contents, "utf-8");
+			fs.writeFileSync(`${targetDir}/resources/servicedefs/app-prefabs-${global.appName}-servicedefs.json`, contents, "utf-8");
 		}
 	} catch (err) {
 		error(`Error copying file ${sourcePath}: ${err}`);
 	}
 	//prefabs servicedefs
-	const prefabServiceDefs = await fsp.readFile(join(uiSourcesDir, "servicedefs/app-prefabs-servicedefs.json"), 'utf-8');
+	const prefabServiceDefs = await fsp.readFile(join(resourcesDir, "servicedefs/app-prefabs-servicedefs.json"), 'utf-8');
 	let prefabContent =  JSON.parse(prefabServiceDefs);
 	for (const [prefabName, defs] of Object.entries(prefabContent)) {
 		try {
 			const template = getHandlebarTemplate('servicedefs');
 			const contents = template({defs: safeString(JSON.stringify(defs, undefined, 4))});
-			fs.writeFileSync(`${targetDir}/resources/files/app-prefabs-${prefabName}-servicedefs.json`, contents, "utf-8");
+			fs.writeFileSync(`${targetDir}/resources/servicedefs/app-prefabs-${prefabName}-servicedefs.json`, contents, "utf-8");
 		} catch (err) {
 			error(`Error copying file ${sourcePath}: ${err}`);
 		}
@@ -604,7 +682,10 @@ const generateSecurityInfo = async (sourceDir) => {
 	let targetDir = getGenNgDir(sourceDir);
 	const template = getHandlebarTemplate('security-info');
 	const contents = template();
-	await writeFile(`${targetDir}/resources/files/info.json`, contents);
+	if (!fs.existsSync(join(targetDir, "resources/security/"))) {
+		fs.mkdirSync(join(targetDir, "resources/security/"), { recursive: true });
+	}
+	await writeFile(`${targetDir}/resources/security/info.json`, contents);
 };
 
 const getMergedServiceDefs = async (sourceDir) => {
@@ -632,6 +713,7 @@ const generateDist = async(sourceDir) => {
 	await copyWebComponentBuildFiles(sourceDir);
 	await copyWebpackConfigFiles(sourceDir);
 
+	await copyUIResources(sourceDir);
 	await generateServiceDefs(sourceDir);
 	await generateSecurityInfo(sourceDir);
 	await copyResourceFiles(sourceDir);
