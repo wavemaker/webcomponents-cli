@@ -11,15 +11,27 @@
     }
 
     const mountStyles = () => {
-        function getRuntimeUrl(aName): string {
-            let scriptSelector = `script[src*="wm-${aName}.js"]`
+        function getRuntimeUrl(aName: string): string {
+            const scriptSelector = `script[src*="wm-${aName}.js"]`;
             // Find the script tag that loads our web component
             const scriptElement = document.querySelector(scriptSelector) as HTMLScriptElement;
+
             if (scriptElement) {
                 const scriptSrc = scriptElement.src;
+
+                // Check if the URL is relative
+                if (!/^(http:|https:|\/\/)/i.test(scriptSrc)) {
+                    // Resolve the relative URL using the document's location
+                    const parentUrl = window.location.href;
+                    const parentBasePath = parentUrl.substring(0, parentUrl.lastIndexOf('/') + 1);
+                    return new URL(scriptSrc, parentBasePath).href;
+                }
+
+                // If the URL is absolute, extract the base path
                 const basePath = scriptSrc.substring(0, scriptSrc.lastIndexOf('/') + 1);
                 return basePath;
             }
+            // Fallback path if the script element is not found
             return '/ng-bundle/';
         }
         //@ts-ignore

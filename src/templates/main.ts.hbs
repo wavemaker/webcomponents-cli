@@ -66,20 +66,34 @@ new Promise<Event | void>( resolve => {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
                     const imgElement = mutation.target as HTMLImageElement;
                     const currentSrc = imgElement.getAttribute('src');
+                    let isRelativeUrl = false;
                     if (currentSrc) {
-                        //@ts-ignore
-                        const componentBaseUrl = WM_APPS_META[wcAppName].artifactsUrl;
-                        const resolvedSrc = new URL(currentSrc, componentBaseUrl).href;
-                        // Avoid re-triggering observer by temporarily disconnecting it
-                        observer.disconnect();
+                        try {
+                            const url = new URL(currentSrc);
+                            if (url.protocol === 'http:' || url.protocol === 'https:') {
+                                // Skip updating if it's an absolute URL
+                                return;
+                            }
+                        } catch (e) {
+                            // If URL constructor throws, it means currentSrc is relative
+                            isRelativeUrl = true;
+                        }
+                        if(isRelativeUrl) {
+                            //@ts-ignore
+                            const componentBaseUrl = WM_APPS_META[wcAppName].artifactsUrl;
+                            const resolvedSrc = new URL(currentSrc, componentBaseUrl).href;
 
-                        imgElement.setAttribute('src', resolvedSrc);
-                        // Reconnect the observer after updating the src
-                        observer.observe(document.body, {
-                            childList: true,
-                            subtree: true,
-                            attributes: true
-                        });
+                            // Avoid re-triggering observer by temporarily disconnecting it
+                            observer.disconnect();
+
+                            imgElement.setAttribute('src', resolvedSrc);
+                            // Reconnect the observer after updating the src
+                            observer.observe(document.body, {
+                                childList: true,
+                                subtree: true,
+                                attributes: true
+                            });
+                        }
                     }
                 }
             });
