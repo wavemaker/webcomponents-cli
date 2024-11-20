@@ -419,6 +419,26 @@ const getPrefabsUsedInApp = async (projectPath) => {
 		}, () => Promise.resolve(prefabsUsedInProject))
 };
 
+const copyUsedPrefabResources = async (sourceDir) => {
+	const prefabDir = node_path.resolve(`${sourceDir}/src/main/webapp/WEB-INF/prefabs`);
+	return stat(prefabDir)
+		.then(() => {
+			return new Promise(async (res, rej) => {
+				for (const dir of await readDir(prefabDir)) {
+					if ((await stat(join(prefabDir, dir))).isDirectory()) {
+						let src = join(prefabDir, dir);
+						let dest =  node_path.resolve(`${getWCAppDir(sourceDir)}/resources/${dir}`);
+						//copying except resources. Not needed now
+						copyDirWithExclusionsSync(src, dest, ["resources"]);
+						//copying resources to prefab resources directly
+						copyDirWithExclusionsSync(`${src}/webapp/resources`, `${dest}/resources`, ["resources"]);
+					}
+				}
+				res();
+			});
+		}, () => Promise.resolve())
+};
+
 const updateAppModuleWithPrefabUrls = async (sourceDir, appName) => {
 	let moduleData = fs.readFileSync(getAppModule(sourceDir), "utf-8");
 	await getPrefabsUsedInApp(sourceDir).then(function(prefabs) {
@@ -444,6 +464,7 @@ const updateAppModuleWithPrefabUrls = async (sourceDir, appName) => {
 		moduleData = moduleData.replace(prefabPattern, "$1\n" + prefabUrlsTemplate);
 		fs.writeFileSync(`${getAppModule(sourceDir)}`, moduleData, "utf-8");
 	});
+	await copyUsedPrefabResources(sourceDir);
 };
 
 const updateAppModule = async(sourceDir) => {

@@ -65,7 +65,7 @@ new Promise<Event | void>( resolve => {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
                     const imgElement = mutation.target as HTMLImageElement;
-                    const currentSrc = imgElement.getAttribute('src');
+                    let currentSrc = imgElement.getAttribute('src');
                     let isRelativeUrl = false;
                     if (currentSrc) {
                         try {
@@ -81,6 +81,7 @@ new Promise<Event | void>( resolve => {
                         if(isRelativeUrl) {
                             //@ts-ignore
                             const componentBaseUrl = WM_APPS_META[wcAppName].artifactsUrl;
+                            currentSrc = currentSrc.replace("app/prefabs/", 'resources/');
                             const resolvedSrc = new URL(currentSrc, componentBaseUrl).href;
 
                             // Avoid re-triggering observer by temporarily disconnecting it
