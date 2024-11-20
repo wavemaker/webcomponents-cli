@@ -657,7 +657,7 @@ const generateServiceDefs = async (sourceDir) => {
 	try {
 		const template = getHandlebarTemplate('servicedefs');
 		const contents = template({defs: safeString(JSON.stringify(appDefsContent, undefined, 4))});
-		fs.writeFileSync(`${targetDir}/resources/files/app-servicedefs.json`, contents, "utf-8");
+		fs.writeFileSync(`${targetDir}/resources/servicedefs/app-servicedefs.json`, contents, "utf-8");
 		if(global.WMPropsObj.type === "PREFAB"){
 			fs.writeFileSync(`${targetDir}/resources/servicedefs/app-prefabs-${global.appName}-servicedefs.json`, contents, "utf-8");
 		}
