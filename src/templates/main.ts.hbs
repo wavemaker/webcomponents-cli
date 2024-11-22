@@ -97,8 +97,68 @@ new Promise<Event | void>( resolve => {
                         }
                     }
                 }
+
+                // Handle <wm-prefab> existing attributes
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node instanceof HTMLElement) {
+                            const prefabChild = node.querySelector('[wmprefab]') as HTMLElement;
+                            if (prefabChild) {
+                                handleWmPrefabChild(prefabChild);
+                            }
+                            // If the added node itself has `wmprefab`
+                            if (node instanceof HTMLElement && node.hasAttribute('wmprefab')) {
+                                handleWmPrefabChild(node);
+                            }
+                        }
+                    });
+                }
+
+                // Handle dynamically added attributes on <wm-prefab>
+                if (mutation.type === 'attributes' && mutation.target instanceof HTMLElement) {
+                    const prefabElement = mutation.target as HTMLElement;
+                    if (prefabElement.tagName.toLowerCase() === `wm-${wcAppName}`) {
+                        const wmPrefabElement = prefabElement.querySelector('[wmprefab]') as HTMLElement;
+                        let attrName = mutation.attributeName;
+                        if(attrName.indexOf('data-processed') === -1) {
+                            const newValue = mutation.target.getAttribute(attrName);
+                            wmPrefabElement.setAttribute(attrName, newValue);
+                            const appRef = appModuleRef.injector.get(ApplicationRef);
+                            // console.log("-----change detection triggered------", appRef)
+                            appRef.tick();
+                        }
+                    }
+                }
             });
         });
+
+        // Function to handle elements with `wmprefab` attribute
+        function handleWmPrefabChild(wmprefabElement: HTMLElement) {
+            let prefabElement = document.querySelector(`wm-${wcAppName}`);
+            if (!prefabElement) return;
+
+            transferAttributes(prefabElement, wmprefabElement);
+            // Avoid duplicate processing
+            //@ts-ignore
+            if (prefabElement.dataset.processed === 'true') {
+                return;
+            }
+
+            // wmprefabElement.outerHTML = wmprefabElement.outerHTML;
+            // Mark this element as processed
+            //@ts-ignore
+            prefabElement.dataset.processed = 'true';
+        }
+
+        function transferAttributes(prefabElement: Element, wmprefabAttrElement: HTMLElement) {
+            // Move attributes from <wm-app> to the child with `wmprefab`
+            Array.from(prefabElement.attributes).forEach((attr) => {
+                if (!wmprefabAttrElement.hasAttribute(attr.name)) {
+                    wmprefabAttrElement.setAttribute(attr.name, attr.value);
+                }
+            });
+        }
+
         // Configure the observer to watch for DOM changes
         observer.observe(document.body, {
             childList: true,
