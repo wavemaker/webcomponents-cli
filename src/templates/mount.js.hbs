@@ -1,6 +1,15 @@
 (function(appName) {
     wcAppName = appName;
-    const mountStyle = (styleSheetUrl) => {
+
+    (function(appComponentElement){
+        const wmAppClassElement = document.createElement('div');
+        wmAppClassElement.classList.add('wm-app');
+        appComponentElement.parentNode.insertBefore(wmAppClassElement, appComponentElement);
+        wmAppClassElement.appendChild(appComponentElement);
+    })(document.querySelector(`wm-${wcAppName}`))
+
+
+const mountStyle = (styleSheetUrl) => {
         var head  = document.getElementsByTagName('head')[0];
         var link  = document.createElement('link');
         link.rel  = 'stylesheet';

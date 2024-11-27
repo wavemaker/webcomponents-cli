@@ -41,15 +41,7 @@ export class {{componentName}} extends {{#if enableSpa}}BaseSpaPageComponent{{el
     }
 
     ngAfterViewInit() {
-        this.addParentToCustomElement();
-        this.addPrefabAttributes();
         this.bindFnsToPrefab();
-        const attributes = this.elementRef.nativeElement.attributes;
-        for (let i = 0; i < attributes.length; i++) {
-            const attribute = attributes[i];
-            // console.log('----------Attribute---------:', attribute.name, 'Value:', attribute.value);
-            setTimeout(() => {});
-        }
 
         // @ts-ignore
         if(super.ngAfterViewInit) {
@@ -58,28 +50,10 @@ export class {{componentName}} extends {{#if enableSpa}}BaseSpaPageComponent{{el
         }
     }
 
-    addParentToCustomElement(){
-        const wmAppElement = document.createElement('div');
-        const wmPrefabElement = this.elementRef.nativeElement;
-        wmAppElement.classList.add('wm-app');
-        if (wmPrefabElement) {
-            wmPrefabElement.parentNode.insertBefore(wmAppElement, wmPrefabElement);
-            wmAppElement.appendChild(wmPrefabElement);
-        }
-    }
-
-    addPrefabAttributes() {
-        const attributes = this.elementRef.nativeElement.attributes;
-        for (let i = 0; i < attributes.length; i++) {
-            const attrName = attributes[i].name;
-            const attrValue = attributes[i].value;
-            this.prefabDirective.nativeElement.setAttribute(attrName, attrValue);
-        }
-    }
-
     bindFnsToPrefab() {
-        const wcAttributes = this.elementRef.nativeElement.attributes;
+        // const wcAttributes = this.elementRef.nativeElement.attributes;
         const prefabEle = this.prefabDirective.nativeElement;
+        const wcAttributes = prefabEle.attributes;
         // console.log("==========prefabEle===========", prefabEle)
         for (let i = 0; i < wcAttributes.length; i++) {
             const attribute = wcAttributes[i];
@@ -89,6 +63,14 @@ export class {{componentName}} extends {{#if enableSpa}}BaseSpaPageComponent{{el
                 let fn = attrVal,
                 fnName = fn.substring(0, attrVal.indexOf("("));
                 // console.log("--============fnName-===========", fnName);
+                let eventName = attrName.substring(0, attrName.indexOf("."));
+                eventName = eventName.charAt(0).toUpperCase() + eventName.slice(1);
+                eventName = "on"+ eventName;
+                // if(this.prefabDirective[eventName]) {
+                //    this.prefabDirective[eventName] = window[fnName];
+                // }
+                // @ts-ignore
+                this[eventName] = window[fnName];
                 // @ts-ignore
                 this[fnName] = window[fnName];
             }
