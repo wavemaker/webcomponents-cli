@@ -434,6 +434,11 @@ const copyUsedPrefabResources = async (sourceDir) => {
 						copyDirWithExclusionsSync(`${src}/webapp/resources`, `${dest}/resources`, ["resources"]);
 					}
 				}
+				if(global.WMPropsObj.type === "PREFAB") {
+					let src = node_path.resolve(`${sourceDir}/src/main/webapp/resources`);
+					let dest =  node_path.resolve(`${getWCAppDir(sourceDir)}/resources/${global.WMPropsObj.name}/resources`);
+					copyDirWithExclusionsSync(src, dest, []);
+				}
 				res();
 			});
 		}, () => Promise.resolve())
