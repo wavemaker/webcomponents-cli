@@ -690,17 +690,21 @@ const generateServiceDefs = async (sourceDir) => {
 	} catch (err) {
 		error(`Error copying file ${sourcePath}: ${err}`);
 	}
-	//prefabs servicedefs
-	const prefabServiceDefs = await fsp.readFile(join(resourcesDir, "servicedefs/app-prefabs-servicedefs.json"), 'utf-8');
-	let prefabContent =  JSON.parse(prefabServiceDefs);
-	for (const [prefabName, defs] of Object.entries(prefabContent)) {
-		try {
-			const template = getHandlebarTemplate('servicedefs');
-			const contents = template({defs: safeString(JSON.stringify(defs, undefined, 4))});
-			fs.writeFileSync(`${targetDir}/resources/servicedefs/app-prefabs-${prefabName}-servicedefs.json`, contents, "utf-8");
-		} catch (err) {
-			error(`Error copying file ${sourcePath}: ${err}`);
+	try {
+		//prefabs servicedefs
+		const prefabServiceDefs = await fsp.readFile(join(resourcesDir, "servicedefs/app-prefabs-servicedefs.json"), 'utf-8');
+		let prefabContent =  JSON.parse(prefabServiceDefs);
+		for (const [prefabName, defs] of Object.entries(prefabContent)) {
+			try {
+				const template = getHandlebarTemplate('servicedefs');
+				const contents = template({defs: safeString(JSON.stringify(defs, undefined, 4))});
+				fs.writeFileSync(`${targetDir}/resources/servicedefs/app-prefabs-${prefabName}-servicedefs.json`, contents, "utf-8");
+			} catch (err) {
+				error(`Error copying file ${sourcePath}: ${err}`);
+			}
 		}
+	} catch (error) {
+		//log(`There are no prefabs used in this app ${error}`);
 	}
 };
 
@@ -729,7 +733,7 @@ const getMergedServiceDefs = async (sourceDir) => {
 		}
 		return serviceDefsObject;
 	} catch (err) {
-		console.error(`Error - ${err}`);
+		error(`Error - ${err}`);
 	}
 }
 
