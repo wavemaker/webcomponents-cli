@@ -21,6 +21,7 @@ const  initTemplates = () => {
 	templates.set('wc-webpack-config', Handlebars.compile(fs.readFileSync(templatePath+'/wc-custom-webpack.config.js.hbs', 'utf-8')))
 	templates.set('formatters-js', Handlebars.compile(fs.readFileSync(templatePath+'/formatters.js.hbs', 'utf-8')))
 	templates.set('app-variables-json', Handlebars.compile(fs.readFileSync(templatePath+'/app.variables.json.hbs', 'utf-8')))
+	templates.set('docs-html', Handlebars.compile(fs.readFileSync(templatePath+'/docs/index.html.hbs', 'utf-8')));
 };
 
 const getHandlebarTemplate = templateName => templates.get(templateName);

@@ -41,7 +41,7 @@ const {
 	getPagesDir,
 	getServiceDefsDir,
 	getWCAppDir, getWCDistDir, getWCZipFile, getTargetDir, getUIResourcesDir, getPagesConfigJson, getPartialsDir,
-	copyDirWithExclusionsSync, getSrcDir
+	copyDirWithExclusionsSync, getSrcDir, isPrefabProject
 } = require('./utils');
 
 const { getHandlebarTemplate, safeString } = require('./template.helpers');
@@ -206,6 +206,11 @@ const updateAngularJson = async(sourceDir) => {
 		},
 		{
 			"glob": "**/*",
+			"input": "resources/docs/",
+			"output": "/docs/"
+		},
+		{
+			"glob": "**/*",
 			"input": "resources/security/",
 			"output": "/security/"
 		},
@@ -261,7 +266,7 @@ const getAppPagesList = async (sourceDir) => {
 	if(global.pagesList.length) {
 		return global.pagesList;
 	} else {
-		if(global.WMPropsObj.type === "PREFAB") {
+		if(isPrefabProject()) {
 			global.pagesList.push('Main')
 		} else {
 			let pagesConfig = getPagesConfigJson(sourceDir);
@@ -281,7 +286,7 @@ const getAllPagesList = async (sourceDir) => {
 	if(global.allPagesList.length) {
 		return global.allPagesList;
 	} else {
-		if(global.WMPropsObj.type === "PREFAB") {
+		if(isPrefabProject()) {
 			global.allPagesList.push({
 				"name": "Main",
 				"type": "PAGE",
@@ -380,7 +385,7 @@ const getComponentImports = async(sourceDir) => {
 	let componentImports = '';
 	pagesList.forEach(pageName => {
 		let capPageName = pageName[0].toUpperCase() + pageName.slice(1);
-		if(global.WMPropsObj.type === "PREFAB") {
+		if(isPrefabProject()) {
 			componentImports += `import { ${capPageName}Component } from \"./pages/${pageName}/${pageName}.component\";`;
 		} else {
 			componentImports += `
@@ -439,7 +444,7 @@ const copyUsedPrefabResources = async (sourceDir) => {
 						copyDirWithExclusionsSync(`${src}/webapp/css`, `${dest}/css`, []);
 					}
 				}
-				if(global.WMPropsObj.type === "PREFAB") {
+				if(isPrefabProject()) {
 					let src = node_path.resolve(`${sourceDir}/src/main/webapp/resources`);
 					let dest =  node_path.resolve(`${getWCAppDir(sourceDir)}/resources/${global.WMPropsObj.name}/resources`);
 					copyDirWithExclusionsSync(src, dest, []);
@@ -672,7 +677,7 @@ const generateServiceDefs = async (sourceDir) => {
 		let contents = template({defs: safeString(JSON.stringify("", undefined, 4))});
 		fs.writeFileSync(`${resourcesDir}/${prefabSerDefs}`, contents, "utf-8");
 	}
-	if(global.actualType === "PREFAB") {
+	if(isPrefabProject()) {
 		// change the filenames as we are making prefab to webapp
 		const swapFiles = () => {
 			let tempFile = join(resourcesDir, "servicedefs/temp.json");

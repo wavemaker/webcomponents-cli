@@ -12,8 +12,7 @@ const {
 } = require('./update.project');
 const { printFailure, updateStatus, endStatus, printHeader, initStatus} = require('./console.utils');
 const { initTemplates } = require('./template.helpers');
-const { initMaven } = require('./maven.utils');
-const { logProjectMetadata } = require("./utils");
+const { logProjectMetadata, generateDocs, isPrefabProject} = require("./utils");
 
 const path = require('path');
 const {scaffoldPrefabProject} = require("./scaffold.prefab");
@@ -49,6 +48,9 @@ const addNgElementToApp = async (source) => {
 	//}
 	await updateComponentFiles(source);
 
+	updateStatus(`Generating documentation...`);
+	await generateDocs(source);
+
 	updateStatus(`Generating the dist...`);
 	await generateDist(source);
 	await generateDummyUIBuildDir(source);
@@ -61,7 +63,7 @@ const convertToAbsolutePath = async (source) => {
 	return path.resolve(source);
 }
 
-async function restoreBackUpWMProsFile(sourceDir) {
+async function restoreBackUpWMPropsFile(sourceDir) {
 	const fileName = ".wmproject.properties"
 	const bkFileName = ".wmproject.properties.bk"
 	fs.copyFileSync(`${sourceDir}/${bkFileName}`, `${sourceDir}/${fileName}`);
@@ -70,23 +72,21 @@ async function restoreBackUpWMProsFile(sourceDir) {
 (async () => {
 	printHeader();
 	argv.source = await convertToAbsolutePath(argv.source);
+	let sourceDir = argv.source;
 	await logProjectMetadata(argv.source);
 	initStatus();
 	try {
 		if (argv.source) {
 			initTemplates();
 
-			updateStatus(`Compiling the java sources...`);
-			// await initMaven(argv.source);
-
-			if(global.WMPropsObj.type === "PREFAB") {
-				await scaffoldPrefabProject(argv.source)
+			if(isPrefabProject()) {
+				await scaffoldPrefabProject(sourceDir)
 			}
 			updateStatus(`Transpiling the Project...`);
-			await addNgElementToApp(argv.source);
+			await addNgElementToApp(sourceDir);
 
-			if(global.WMPropsObj.type === "PREFAB") {
-				await restoreBackUpWMProsFile(argv.source)
+			if(isPrefabProject()) {
+				await restoreBackUpWMPropsFile(sourceDir)
 			}
 		}
 	} catch (e) {

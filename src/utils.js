@@ -14,6 +14,7 @@ const stat = util.promisify(fs.stat);
 const readDir = util.promisify(fs.readdir);
 const readFile = util.promisify(fs.readFile);
 const { log, error } = require("./console.utils");
+const {getHandlebarTemplate} = require("./template.helpers");
 const WEB_COMPONENT_APP_DIR = "generated-angular-app";
 const CUSTOM_WEBPACK_CONFIG_FILE = "wc-custom-webpack.config.js";
 
@@ -243,8 +244,43 @@ const logProjectMetadata = async(sourceDir) => {
 	log("*************************************************************");
 }
 
+const isPrefabProject = () => {
+	return global.actualType === "PREFAB";
+}
+
 const updateGlobalProps = async(sourceDir) => {
 	global.propsObj = await getWMPropsFromXml(sourceDir);
+}
+
+const escapeHtml = (htmlString) => {
+	//.replace(/&/g, '&amp;')
+	return htmlString
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
+const generateDocs = async(sourceDir) => {
+	let appName = global.WMPropsObj.displayName;
+	let appTag = appName.toLowerCase();
+	let codeSnippet = escapeHtml(`<wm-${appTag}></wm-${appTag}>`);
+	let script = escapeHtml(`<script src="http[s]://HOST_NAME/wm-element.js"></script>&#10;<script src="http[s]://HOST_NAME/wm-${appTag}.js" type="module"></script>`);
+	let config = escapeHtml(`<script>&#10;&#9;const WM_APPS_META = {&#10;&#9;&#9;${appTag}: {&#10;&#9;&#9;&#9;apiUrl: "http[s]://HOST_NAME/<>"&#10;&#9;&#9;},&#10;&#9;}&#10;</script>`);
+	let prefabProps = "";
+	if(isPrefabProject()) {
+		//prefabProps = fs.readFileSync(`${getTargetDir(sourceDir)}/docs/index.html`, 'utf8');
+	}
+	const docsTemplate = getHandlebarTemplate('docs-html');
+	const docsHtml = docsTemplate({appName, codeSnippet, script, config, prefabProps});
+	try {
+		if (!fs.existsSync(`${getWCAppDir(sourceDir)}/resources/docs`)) {
+			fs.mkdirSync(`${getWCAppDir(sourceDir)}/resources/docs`, { recursive: true });
+		}
+		fs.writeFileSync(`${getWCAppDir(sourceDir)}/resources/docs/index.html`, docsHtml);
+	} catch (err) {
+		console.error(`Error creating the docs file ${getWCAppDir(sourceDir)}/resources/docs/index.html - `, err);
+	}
 }
 
 module.exports = {
@@ -293,5 +329,7 @@ module.exports = {
 	convertToCamelCase,
 	logProjectMetadata,
 	copyDirWithExclusionsSync,
-	updateGlobalProps
+	updateGlobalProps,
+	generateDocs,
+	isPrefabProject
 }
