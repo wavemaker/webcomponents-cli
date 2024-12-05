@@ -16,6 +16,8 @@ const { initMaven } = require('./maven.utils');
 const { logProjectMetadata } = require("./utils");
 
 const path = require('path');
+const {scaffoldPrefabProject} = require("./scaffold.prefab");
+const fs = require("fs");
 
 const argv = require("yargs")
 	.usage("Usage: $0 -s [source WaveMaker Prefab project path]")
@@ -42,9 +44,9 @@ const addNgElementToApp = async (source) => {
 	await updateAngularJson(source);
 	await updateMainTsFile(source);
 	await updateAppModule(source);
-	if(global.WMPropsObj.type === "PREFAB") {
+	//if(global.WMPropsObj.type === "PREFAB") {
 		await updateMainFile(source);
-	}
+	//}
 	await updateComponentFiles(source);
 
 	updateStatus(`Generating the dist...`);
@@ -59,6 +61,12 @@ const convertToAbsolutePath = async (source) => {
 	return path.resolve(source);
 }
 
+async function restoreBackUpWMProsFile(sourceDir) {
+	const fileName = ".wmproject.properties"
+	const bkFileName = ".wmproject.properties.bk"
+	fs.copyFileSync(`${sourceDir}/${bkFileName}`, `${sourceDir}/${fileName}`);
+}
+
 (async () => {
 	printHeader();
 	argv.source = await convertToAbsolutePath(argv.source);
@@ -71,8 +79,15 @@ const convertToAbsolutePath = async (source) => {
 			updateStatus(`Compiling the java sources...`);
 			// await initMaven(argv.source);
 
+			if(global.WMPropsObj.type === "PREFAB") {
+				await scaffoldPrefabProject(argv.source)
+			}
 			updateStatus(`Transpiling the Project...`);
 			await addNgElementToApp(argv.source);
+
+			if(global.WMPropsObj.type === "PREFAB") {
+				await restoreBackUpWMProsFile(argv.source)
+			}
 		}
 	} catch (e) {
 		printFailure(e);

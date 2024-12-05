@@ -1,0 +1,8 @@
+<wm-partial name="CommonPage">
+    <wm-alertdialog name="CommonAlertDialog" controller="NotificationDialogController" notificationdialog="alert" message="bind:notification.text" title="bind:notification.title" oktext="bind:notification.okButtonText" alerttype="bind:notification.alerttype"
+                    on-ok="notification.onOk()" on-close="notification.onClose()">
+    </wm-alertdialog>
+    <wm-confirmdialog name="CommonConfirmDialog" controller="NotificationDialogController" notificationdialog="confirm" message="bind:notification.text" title="bind:notification.title" oktext="bind:notification.okButtonText" canceltext="bind:notification.cancelButtonText"
+                      on-ok="notification.onOk()" on-cancel="notification.onCancel()">
+    </wm-confirmdialog>
+</wm-partial>

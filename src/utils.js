@@ -22,6 +22,10 @@ const getWCDistDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist/n
 const getSrcDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/src`);
 const getBuildScriptsDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/build-scripts`);
 const getAppDir = sourceDir => path.resolve(`${getSrcDir(sourceDir)}/app`);
+const getSrcAppDir = sourceDir => path.resolve(`${sourceDir}/src`);
+const getSrcWebappDir = sourceDir => path.resolve(`${sourceDir}/src/main/webapp`);
+const getExtensionsDir = sourceDir => path.resolve(`${getSrcWebappDir(sourceDir)}/extensions`);
+const getSrcPagesDir = sourceDir => path.resolve(`${getSrcWebappDir(sourceDir)}/pages`);
 const getPagesDir = sourceDir => path.resolve(`${getAppDir(sourceDir)}/pages`);
 const getPartialsDir = sourceDir => path.resolve(`${getAppDir(sourceDir)}/partials`);
 const getPagesConfigJson = sourceDir => path.resolve(`${sourceDir}/src/main/webapp/pages/pages-config.json`);
@@ -165,6 +169,49 @@ const getAppName = async(sourceDir) => {
 	return global.appName;
 };
 
+/**
+ * Recursively copy a directory synchronously with exclusions
+ * @param {string} src - The source directory
+ * @param {string} dest - The destination directory
+ * @param {string[]} exclude - List of directories or files to exclude
+ */
+const copyDirWithExclusionsSync = (src, dest, exclude = []) => {
+	// Create destination directory if it doesn't exist
+	if (!fs.existsSync(dest)) {
+		fs.mkdirSync(dest, { recursive: true });
+	}
+
+	// Read the contents of the source directory
+	let entries = [];
+	try {
+		entries = fs.readdirSync(src, { withFileTypes: true });
+	} catch (err) {
+		if (err.code === 'ENOENT') {
+			//console.log(`Directory "${src}" does not exist. Continuing...`);
+		} else {
+			throw err; // Re-throw other errors
+		}
+	}
+
+	for (const entry of entries) {
+		const srcPath = node_path.join(src, entry.name);
+		const destPath = node_path.join(dest, entry.name);
+
+		// Skip files/directories that are in the exclude list
+		if (exclude.includes(entry.name)) {
+			//console.log(`Skipping: ${srcPath}`);
+			continue;
+		}
+
+		if (entry.isDirectory()) {
+			// Recursively copy the subdirectory
+			copyDirWithExclusionsSync(srcPath, destPath, exclude);
+		} else {
+			fs.copyFileSync(srcPath, destPath);
+		}
+	}
+}
+
 const logAppRuntimeVersion = async(sourceDir) => {
 	const pomContent = fs.readFileSync(getPOMXml(sourceDir), "utf8");
 	const RUNTIME_TAG_BEGIN = `<wavemaker.app.runtime.ui.version>`;
@@ -182,8 +229,7 @@ const logAppRuntimeVersion = async(sourceDir) => {
 }
 
 const logProjectMetadata = async(sourceDir) => {
-	let propsObj = await getWMPropsFromXml(sourceDir);
-	global.propsObj = propsObj;
+	await updateGlobalProps(sourceDir);
 	log("*************************************************************");
 	log("Project Metadata");
 	log("*************************************************************");
@@ -193,7 +239,12 @@ const logProjectMetadata = async(sourceDir) => {
 	log(`Application Version: ${propsObj['version']}`);
 	log(`Application HomePage: ${propsObj['homePage']}`);
 	await logAppRuntimeVersion(sourceDir);
+	global.actualType = `${propsObj['type']}`;
 	log("*************************************************************");
+}
+
+const updateGlobalProps = async(sourceDir) => {
+	global.propsObj = await getWMPropsFromXml(sourceDir);
 }
 
 module.exports = {
@@ -221,10 +272,15 @@ module.exports = {
 	getTargetDir,
 	getUIResourcesDir,
 	getWCAppDir,
+	getSrcDir,
+	getSrcAppDir,
 	getWCDistDir,
 	getWCZipFile,
 	getBuildScriptsDir,
 	getNgBundle,
+	getExtensionsDir,
+	getSrcWebappDir,
+	getSrcPagesDir,
 	getPagesDir,
 	getPartialsDir,
 	getPagesConfigJson,
@@ -235,5 +291,7 @@ module.exports = {
 	getWMPropsObject,
 	getComponentName,
 	convertToCamelCase,
-	logProjectMetadata
+	logProjectMetadata,
+	copyDirWithExclusionsSync,
+	updateGlobalProps
 }

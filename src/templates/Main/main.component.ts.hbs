@@ -30,12 +30,6 @@ export class {{componentName}} extends {{#if enableSpa}}BaseSpaPageComponent{{el
     @ViewChild(PrefabDirective) prefabDirective;
 
     constructor(@Inject(NgZone) ngZone: NgZone, _pipeProvider: PipeProvider, private elementRef: ElementRef) {
-        setNgZone(ngZone);
-        setPipeProvider(_pipeProvider);
-
-        // @ts-ignore
-        setTheme('bs3');
-
         super();
         super.init();
     }

@@ -18,175 +18,182 @@ let wcAppName = '';
 
 {{{mountStyles}}}
 
-document.addEventListener('DOMContentLoaded', () => {
-new Promise<Event | void>( resolve => {
-    if (window['cordova']) {
-        document.addEventListener('deviceready', resolve);
-    } else {
-        resolve();
+function bootstrap(appModuleRef) {
+    //default page to be rendered if nothing passed
+    const router = appModuleRef.injector.get(Router);
+
+    function initializeComponent(retries = 0, maxRetries = 10) {
+        let appComponentElement = document.querySelector(`wm-${wcAppName}`);
+        if (appComponentElement) {
+            const componentInstance = (appComponentElement as any).ngElementStrategy?.componentRef;
+            const appRef = appModuleRef.injector.get(ApplicationRef);
+            let pageNameConfigured = appComponentElement.getAttribute("pageName");
+            pageNameConfigured = pageNameConfigured ? pageNameConfigured : "Main";
+            router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
+            setTimeout(function() {
+                appRef.tick();
+            }, 1000);
+        } else if (retries < maxRetries) {
+            setTimeout(function() {
+                console.log(`Retry ${retries + 1}: trying again to find the component`);
+                initializeComponent(retries + 1, maxRetries);
+            }, 100);
+        } else {
+            console.error(`Maximum retries reached. Unable to find WebComponent wm-${wcAppName}`);
+        }
     }
-    }).then(() => platformBrowserDynamic().bootstrapModule(AppModule))
-    .then((appModuleRef: NgModuleRef<AppModule>) => {
-        //default page to be rendered if nothing passed
-        const router = appModuleRef.injector.get(Router);
+    let currentUrl = window.location.pathname;
 
-        function initializeComponent(retries = 0, maxRetries = 10) {
-            let appComponentElement = document.querySelector(`wm-${wcAppName}`);
-            if (appComponentElement) {
-                const componentInstance = (appComponentElement as any).ngElementStrategy?.componentRef;
-                const appRef = appModuleRef.injector.get(ApplicationRef);
-                let pageNameConfigured = appComponentElement.getAttribute("pageName");
-                pageNameConfigured = pageNameConfigured ? pageNameConfigured : "Main";
-                console.log("pageNameConfigured : ", pageNameConfigured);
-                router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
-                setTimeout(function() {
-                    appRef.tick();
-                }, 1000);
-            } else if (retries < maxRetries) {
-                setTimeout(function() {
-                    console.log(`Retry ${retries + 1}: trying again to find the component`);
-                    initializeComponent(retries + 1, maxRetries);
-                }, 100);
-            } else {
-                console.error(`Maximum retries reached. Unable to find WebComponent wm-${wcAppName}`);
-            }
+    const observer = new MutationObserver((mutations) => {
+        const newUrl = window.location.pathname;
+        if (newUrl !== currentUrl) {
+            console.log(`Detected URL change from the current url - ${currentUrl} to the new url - ${newUrl}`);
+            currentUrl = newUrl;
+            initializeComponent();
         }
-        let currentUrl = window.location.pathname;
 
-        const observer = new MutationObserver((mutations) => {
-            const newUrl = window.location.pathname;
-            if (newUrl !== currentUrl) {
-                console.log(`Detected URL change from the current url - ${currentUrl} to the new url - ${newUrl}`);
-                currentUrl = newUrl;
-                initializeComponent();
-            }
-
-            // Iterate over all mutations to check for image src changes
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
-                    const imgElement = mutation.target as HTMLImageElement;
-                    let currentSrc = imgElement.getAttribute('src');
-                    let isRelativeUrl = false;
-                    if (currentSrc) {
-                        try {
-                            const url = new URL(currentSrc);
-                            if (url.protocol === 'http:' || url.protocol === 'https:') {
-                                // Skip updating if it's an absolute URL
-                                return;
-                            }
-                        } catch (e) {
-                            // If URL constructor throws, it means currentSrc is relative
-                            isRelativeUrl = true;
+        // Iterate over all mutations to check for image src changes
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+                const imgElement = mutation.target as HTMLImageElement;
+                let currentSrc = imgElement.getAttribute('src');
+                let isRelativeUrl = false;
+                if (currentSrc) {
+                    try {
+                        const url = new URL(currentSrc);
+                        if (url.protocol === 'http:' || url.protocol === 'https:') {
+                            // Skip updating if it's an absolute URL
+                            return;
                         }
-                        if(isRelativeUrl) {
-                            //@ts-ignore
-                            const componentBaseUrl = WM_APPS_META[wcAppName].artifactsUrl;
-                            currentSrc = currentSrc.replace("app/prefabs/", 'resources/');
-                            const resolvedSrc = new URL(currentSrc, componentBaseUrl).href;
+                    } catch (e) {
+                        // If URL constructor throws, it means currentSrc is relative
+                        isRelativeUrl = true;
+                    }
+                    if(isRelativeUrl) {
+                        //@ts-ignore
+                        const componentBaseUrl = WM_APPS_META[wcAppName].artifactsUrl;
+                        currentSrc = currentSrc.replace("app/prefabs/", 'resources/');
+                        const resolvedSrc = new URL(currentSrc, componentBaseUrl).href;
 
-                            // Avoid re-triggering observer by temporarily disconnecting it
-                            observer.disconnect();
+                        // Avoid re-triggering observer by temporarily disconnecting it
+                        observer.disconnect();
 
-                            imgElement.setAttribute('src', resolvedSrc);
-                            // Reconnect the observer after updating the src
-                            observer.observe(document.body, {
-                                childList: true,
-                                subtree: true,
-                                attributes: true
-                            });
-                        }
+                        imgElement.setAttribute('src', resolvedSrc);
+                        // Reconnect the observer after updating the src
+                        observer.observe(document.body, {
+                            childList: true,
+                            subtree: true,
+                            attributes: true
+                        });
                     }
                 }
+            }
 
-                // Handle <wm-prefab> existing attributes
-                if (mutation.type === 'childList') {
-                    mutation.addedNodes.forEach((node) => {
-                        if (node instanceof HTMLElement) {
-                            const prefabChild = node.querySelector('[wmprefab]') as HTMLElement;
-                            if (prefabChild) {
-                                handleWmPrefabChild(prefabChild);
-                            }
-                            // If the added node itself has `wmprefab`
-                            if (node instanceof HTMLElement && node.hasAttribute('wmprefab')) {
-                                handleWmPrefabChild(node);
-                            }
+            // Handle <wm-prefab> existing attributes
+            if (mutation.type === 'childList') {
+                mutation.addedNodes.forEach((node) => {
+                    if (node instanceof HTMLElement) {
+                        const prefabChild = node.querySelector('[wmprefab]') as HTMLElement;
+                        if (prefabChild) {
+                            handleWmPrefabChild(prefabChild);
                         }
-                    });
-                }
-
-                // Handle dynamically added attributes on <wm-prefab>
-                if (mutation.type === 'attributes' && mutation.target instanceof HTMLElement) {
-                    const prefabElement = mutation.target as HTMLElement;
-                    if (prefabElement.tagName.toLowerCase() === `wm-${wcAppName}`) {
-                        const wmPrefabElement = prefabElement.querySelector('[wmprefab]') as HTMLElement;
-                        let attrName = mutation.attributeName;
-                        if(attrName.indexOf('data-processed') === -1) {
-                            const newValue = mutation.target.getAttribute(attrName);
-                            wmPrefabElement.setAttribute(attrName, newValue);
-                            const appRef = appModuleRef.injector.get(ApplicationRef);
-                            // console.log("-----change detection triggered------", appRef)
-                            appRef.tick();
+                        // If the added node itself has `wmprefab`
+                        if (node instanceof HTMLElement && node.hasAttribute('wmprefab')) {
+                            handleWmPrefabChild(node);
                         }
                     }
-                }
-            });
-        });
-
-        // Function to handle elements with `wmprefab` attribute
-        function handleWmPrefabChild(wmprefabElement: HTMLElement) {
-            let prefabElement = document.querySelector(`wm-${wcAppName}`);
-            if (!prefabElement) return;
-
-            transferAttributes(prefabElement, wmprefabElement);
-            // Avoid duplicate processing
-            //@ts-ignore
-            if (prefabElement.dataset.processed === 'true') {
-                return;
+                });
             }
 
-            // wmprefabElement.outerHTML = wmprefabElement.outerHTML;
-            // Mark this element as processed
-            //@ts-ignore
-            prefabElement.dataset.processed = 'true';
-        }
-
-        function transferAttributes(prefabElement: Element, wmprefabAttrElement: HTMLElement) {
-            // Move attributes from <wm-app> to the child with `wmprefab`
-            Array.from(prefabElement.attributes).forEach((attr) => {
-                if (!wmprefabAttrElement.hasAttribute(attr.name)) {
-                    wmprefabAttrElement.setAttribute(attr.name, attr.value);
+            // Handle dynamically added attributes on <wm-prefab>
+            if (mutation.type === 'attributes' && mutation.target instanceof HTMLElement) {
+                const prefabElement = mutation.target as HTMLElement;
+                if (prefabElement.tagName.toLowerCase() === `wm-${wcAppName}`) {
+                    const wmPrefabElement = prefabElement.querySelector('[wmprefab]') as HTMLElement;
+                    let attrName = mutation.attributeName;
+                    if(attrName.indexOf('data-processed') === -1) {
+                        const newValue = mutation.target.getAttribute(attrName);
+                        wmPrefabElement.setAttribute(attrName, newValue);
+                        const appRef = appModuleRef.injector.get(ApplicationRef);
+                        // console.log("-----change detection triggered------", appRef)
+                        appRef.tick();
+                    }
                 }
-            });
-        }
-
-        // Configure the observer to watch for DOM changes
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-            attributes: true
-        });
-
-        initializeComponent();
-
-        document.addEventListener('click', (event: MouseEvent) => {
-            //@ts-ignore
-            let target = event.target.parentNode;
-            target = target as HTMLElement;
-            const externalAttr = target.getAttribute('external');
-
-            if (target.tagName === 'A' && externalAttr) {
-                //event.preventDefault();
-                window.parent.postMessage({ type: 'NAVIGATE', externalAttr }, '*');
             }
         });
-
-        const applicationRef = appModuleRef.injector.get(ApplicationRef);
-        window.addEventListener('unload', () => {
-            applicationRef.components.map(c => c && c.destroy());
-        });
-        window.addEventListener('beforeunload', function() {
-            observer.disconnect();
-        });
-        console.timeEnd('bootstrap'), err => console.log(err);
-        }, err => console.log(err));
     });
+
+    // Function to handle elements with `wmprefab` attribute
+    function handleWmPrefabChild(wmprefabElement: HTMLElement) {
+        let prefabElement = document.querySelector(`wm-${wcAppName}`);
+        if (!prefabElement) return;
+
+        transferAttributes(prefabElement, wmprefabElement);
+        // Avoid duplicate processing
+        //@ts-ignore
+        if (prefabElement.dataset.processed === 'true') {
+            return;
+        }
+
+        // wmprefabElement.outerHTML = wmprefabElement.outerHTML;
+        // Mark this element as processed
+        //@ts-ignore
+        prefabElement.dataset.processed = 'true';
+    }
+
+    function transferAttributes(prefabElement: Element, wmprefabAttrElement: HTMLElement) {
+        // Move attributes from <wm-app> to the child with `wmprefab`
+        Array.from(prefabElement.attributes).forEach((attr) => {
+            if (!wmprefabAttrElement.hasAttribute(attr.name)) {
+                wmprefabAttrElement.setAttribute(attr.name, attr.value);
+            }
+        });
+    }
+
+    // Configure the observer to watch for DOM changes
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true
+    });
+
+    initializeComponent();
+
+    document.addEventListener('click', (event: MouseEvent) => {
+        //@ts-ignore
+        let target = event.target.parentNode;
+        target = target as HTMLElement;
+        const externalAttr = target.getAttribute('external');
+
+        if (target.tagName === 'A' && externalAttr) {
+            //event.preventDefault();
+            window.parent.postMessage({ type: 'NAVIGATE', externalAttr }, '*');
+        }
+    });
+
+    const applicationRef = appModuleRef.injector.get(ApplicationRef);
+    window.addEventListener('unload', () => {
+        applicationRef.components.map(c => c && c.destroy());
+    });
+    window.addEventListener('beforeunload', function() {
+        observer.disconnect();
+    });
+    console.timeEnd('bootstrap')
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        bootstrapWebComponent();
+    });
+} else {
+    //For lazily loaded cases. DOM is already loaded, bootstrap immediately.
+    bootstrapWebComponent();
+}
+
+function bootstrapWebComponent() {
+    platformBrowserDynamic().bootstrapModule(AppModule).then((appModuleRef: NgModuleRef<AppModule>) => {
+        bootstrap(appModuleRef);
+    }, err => {
+        console.log(err)
+    });
+}

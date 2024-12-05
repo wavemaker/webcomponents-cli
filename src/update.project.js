@@ -40,14 +40,16 @@ const {
 	geti18nDir,
 	getPagesDir,
 	getServiceDefsDir,
-	getWCAppDir, getWCDistDir, getWCZipFile, getTargetDir, getUIResourcesDir, getPagesConfigJson, getPartialsDir
+	getWCAppDir, getWCDistDir, getWCZipFile, getTargetDir, getUIResourcesDir, getPagesConfigJson, getPartialsDir,
+	copyDirWithExclusionsSync, getSrcDir
 } = require('./utils');
 
 const { getHandlebarTemplate, safeString } = require('./template.helpers');
 
 const generateNgCode = async (sourceDir) => {
 	let targetDir = node_path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
-	let wmNgCodegenPkg = global.WMPropsObj.type === "PREFAB" ? '@wavemaker/angular-codegen@11.5.0-next.141661' : `@wavemaker/angular-codegen@${global.appRuntimeVersion}`;
+	// let wmNgCodegenPkg = global.WMPropsObj.type === "PREFAB" ? '@wavemaker/angular-codegen@11.5.0-next.141661' : `@wavemaker/angular-codegen@${global.appRuntimeVersion}`;
+	let wmNgCodegenPkg = `@wavemaker/angular-codegen@${global.appRuntimeVersion}`;
 	try {
 		fs.mkdirSync(targetDir);
 		// log(`Target directory '${targetDir}' created successfully!`);
@@ -218,8 +220,9 @@ const updateAngularJson = async(sourceDir) => {
 			"output": "/resources/",
 			"ignore": [
 				"**/*.json",
-				"**/*.js",
-				"**/*.txt"
+				"**/*.txt",
+				"**/*.properties",
+				"**/*.xml"
 			]
 		}
 	];
@@ -429,9 +432,11 @@ const copyUsedPrefabResources = async (sourceDir) => {
 						let src = join(prefabDir, dir);
 						let dest =  node_path.resolve(`${getWCAppDir(sourceDir)}/resources/${dir}`);
 						//copying except resources. Not needed now
-						copyDirWithExclusionsSync(src, dest, ["resources"]);
+						copyDirWithExclusionsSync(src, dest, ["resources", "js", "css"]);
 						//copying resources to prefab resources directly
 						copyDirWithExclusionsSync(`${src}/webapp/resources`, `${dest}/resources`, ["resources"]);
+						copyDirWithExclusionsSync(`${src}/webapp/js`, `${dest}/js`, []);
+						copyDirWithExclusionsSync(`${src}/webapp/css`, `${dest}/css`, []);
 					}
 				}
 				if(global.WMPropsObj.type === "PREFAB") {
@@ -456,11 +461,11 @@ const updateAppModuleWithPrefabUrls = async (sourceDir, appName) => {
         import { getPrefabConfig } from '../framework/util/page-util';
         export function downloadPrefabsScripts() {
 			//@ts-ignore
-			let prefabBaseUrl = WM_APPS_META["${appName}"].apiUrl + "/app/prefabs";
+			let prefabBaseUrl = WM_APPS_META["prefabwebcomponent"].artifactsUrl;
 			let usedPrefabs = ${prefabsStr};
 			usedPrefabs.forEach(function(prefabName){
 				let prefabConfig = getPrefabConfig(prefabName);
-				let prefabUrl = prefabBaseUrl + "/" + prefabName;
+				let prefabUrl = prefabBaseUrl + "resources/" + prefabName;
 				prefabConfig.resources.scripts = prefabConfig.resources.scripts.map(script => prefabUrl + script)
 				prefabConfig.resources.styles = prefabConfig.resources.styles.map(style => prefabUrl + style)
 			});
@@ -512,20 +517,38 @@ const updateMainFile = async(sourceDir) => {
 };
 
 const updateComponentFiles = async(sourceDir) => {
-	let allPagesList = await getAllPagesList(sourceDir);
-	allPagesList.forEach(pageObj => {
-		let pageName = pageObj.name;
-		let pName = pageName.toLowerCase();
-		//pageName = pageName[0].toUpperCase() + pageName.slice(1);
-		let pagePath = pageObj.type === "PAGE" ? `${getPagesDir(sourceDir)}` : ((pageObj.type === "PARTIAL" || pageObj.type === "HEADER" || pageObj.type === "TOPNAV" || pageObj.type === "FOOTER" || pageObj.type === "RIGHTNAV" || pageObj.type === "LEFTNAV" || pageObj.type === "POPOVER") ? `${getPartialsDir(sourceDir)}` : `${getPrefabsDir(sourceDir)}`);
-		//let path = global.WMPropsObj.type === "PREFAB" ? `${getPrefabsDir(sourceDir)}` : `${pagePath}`;
-		const pageCompTemplate = `${pagePath}/${pageName}/${pageName}.component.html`;
-		let pageHtml = fs.readFileSync(pageCompTemplate, 'utf8');
+	let baseDirectories = ["pages", "partials", "prefabs"];
 
-		//just ignore custom scripts. They are already bundled in the scripts.js
-		pageHtml = pageHtml.replace(`scripts-to-load=`, `custom-scripts-to-load=`);
-		fs.writeFileSync(pageCompTemplate, pageHtml);
+	baseDirectories.forEach((baseDir) => {
+		const fullPath = `${getSrcDir(sourceDir)}/app/${baseDir}`;
+
+		if (fs.existsSync(fullPath)) {
+			// console.log(`\nSearching in directory: ${fullPath}`);
+			traverseDirectories(fullPath);
+		} else {
+			console.warn(`Directory not found: ${fullPath}`);
+		}
 	});
+
+	/**
+	 * Function to recursively traverse directories and find component files.
+	 * @param {string} dir - The directory to traverse.
+	 */
+	function traverseDirectories(dir) {
+		const items = fs.readdirSync(dir, { withFileTypes: true });
+
+		items.forEach((item) => {
+			const itemPath = node_path.join(dir, item.name);
+
+			if (item.isDirectory()) {
+				traverseDirectories(itemPath);
+			} else if (item.isFile() && item.name.endsWith('.component.html')) {
+				let content = fs.readFileSync(itemPath, 'utf-8');
+				content = content.replace(`scripts-to-load=`, `custom-scripts-to-load=`);
+				fs.writeFileSync(itemPath, content);
+			}
+		});
+	}
 };
 
 const copyWebComponentBuildFiles = async (sourceDir) => {
@@ -625,41 +648,6 @@ const generateWmProjectProperties = async (properties, sourceDir) => {
 	await writeFile(`${targetDir}/src/app/wm-project-properties.ts`, contents);
 };
 
-/**
- * Recursively copy a directory synchronously with exclusions
- * @param {string} src - The source directory
- * @param {string} dest - The destination directory
- * @param {string[]} exclude - List of directories or files to exclude
- */
-function copyDirWithExclusionsSync(src, dest, exclude = []) {
-	// Create destination directory if it doesn't exist
-	if (!fs.existsSync(dest)) {
-		fs.mkdirSync(dest, { recursive: true });
-	}
-
-	// Read the contents of the source directory
-	const entries = fs.readdirSync(src, { withFileTypes: true });
-
-	for (const entry of entries) {
-		const srcPath = node_path.join(src, entry.name);
-		const destPath = node_path.join(dest, entry.name);
-
-		// Skip files/directories that are in the exclude list
-		if (exclude.includes(entry.name)) {
-			console.log(`Skipping: ${srcPath}`);
-			continue;
-		}
-
-		if (entry.isDirectory()) {
-			// Recursively copy the subdirectory
-			copyDirWithExclusionsSync(srcPath, destPath, exclude);
-		} else {
-			// Copy the file
-			fs.copyFileSync(srcPath, destPath);
-		}
-	}
-}
-
 const copyUIResources = async (sourceDir) => {
 	let uiResourcesDir = getUIResourcesDir(sourceDir);
 	let targetDir = `${getGenNgDir(sourceDir)}/resources`;
@@ -674,38 +662,60 @@ const copyUIResources = async (sourceDir) => {
 
 const generateServiceDefs = async (sourceDir) => {
 	let targetDir = getGenNgDir(sourceDir);
-	let resourcesDir = `${getGenNgDir(sourceDir)}/resources`;
-	const sourcePath = join(resourcesDir, "servicedefs/app-servicedefs.json");
+	let resourcesDir = `${getUIResourcesDir(sourceDir)}`;
+	let appSerDefs = "servicedefs/app-servicedefs.json";
+	let prefabSerDefs = "servicedefs/app-prefabs-servicedefs.json";
 
-	//app servicedefs
-	const appServiceDefs = await fsp.readFile(join(resourcesDir, "servicedefs/app-servicedefs.json"), 'utf-8');
-	let appDefsContent =  JSON.parse(appServiceDefs);
-	try {
+	//create an empty file.
+	if (!fs.existsSync(`${resourcesDir}/${prefabSerDefs}`)) {
 		const template = getHandlebarTemplate('servicedefs');
-		const contents = template({defs: safeString(JSON.stringify(appDefsContent, undefined, 4))});
-		fs.writeFileSync(`${targetDir}/resources/servicedefs/app-servicedefs.json`, contents, "utf-8");
-		if(global.WMPropsObj.type === "PREFAB"){
-			fs.writeFileSync(`${targetDir}/resources/servicedefs/app-prefabs-${global.appName}-servicedefs.json`, contents, "utf-8");
-		}
-	} catch (err) {
-		error(`Error copying file ${sourcePath}: ${err}`);
+		let contents = template({defs: safeString(JSON.stringify("", undefined, 4))});
+		fs.writeFileSync(`${resourcesDir}/${prefabSerDefs}`, contents, "utf-8");
 	}
-	try {
-		//prefabs servicedefs
-		const prefabServiceDefs = await fsp.readFile(join(resourcesDir, "servicedefs/app-prefabs-servicedefs.json"), 'utf-8');
-		let prefabContent =  JSON.parse(prefabServiceDefs);
-		for (const [prefabName, defs] of Object.entries(prefabContent)) {
+	if(global.actualType === "PREFAB") {
+		// change the filenames as we are making prefab to webapp
+		const swapFiles = () => {
+			let tempFile = join(resourcesDir, "servicedefs/temp.json");
+			let files = [
+				join(resourcesDir, appSerDefs),
+				join(resourcesDir, prefabSerDefs),
+			]
 			try {
-				const template = getHandlebarTemplate('servicedefs');
-				const contents = template({defs: safeString(JSON.stringify(defs, undefined, 4))});
-				fs.writeFileSync(`${targetDir}/resources/servicedefs/app-prefabs-${prefabName}-servicedefs.json`, contents, "utf-8");
-			} catch (err) {
-				error(`Error copying file ${sourcePath}: ${err}`);
+				fs.renameSync(files[0], tempFile);
+				fs.renameSync(files[1], files[0]);
+				fs.renameSync(tempFile, files[1]);
+				console.log(`Files ${files[0]} and ${files[1]} have been swapped.`);
+			} catch (error) {
+				console.error('Error swapping files:', error.message);
 			}
-		}
-	} catch (error) {
-		//log(`There are no prefabs used in this app ${error}`);
+		};
+		swapFiles();
 	}
+
+	fs.copyFileSync(`${resourcesDir}/${appSerDefs}`, `${targetDir}/resources/${appSerDefs}`);
+	if (!fs.existsSync(`${targetDir}/resources/servicedefs`)) {
+		fs.mkdirSync(`${targetDir}/resources/servicedefs`, { recursive: true });
+	}
+	fs.copyFileSync(`${resourcesDir}/${prefabSerDefs}`, `${targetDir}/resources/servicedefs/app-prefabs-${global.appName}-servicedefs.json`);
+
+	//prefabs servicedefs
+	const prefabsServDefsDir = node_path.resolve(`${resourcesDir}/prefabs`);
+	return stat(prefabsServDefsDir)
+		.then(() => {
+			return new Promise(async (res, rej) => {
+				for (const dir of await readDir(prefabsServDefsDir)) {
+					if ((await stat(join(prefabsServDefsDir, dir))).isDirectory()) {
+						let src = join(prefabsServDefsDir, dir);
+						let dest =  node_path.resolve(`${getWCAppDir(sourceDir)}/resources/servicedefs`);
+						if (!fs.existsSync(`${dest}`)) {
+							fs.mkdirSync(`${dest}`, { recursive: true });
+						}
+						fs.copyFileSync(`${src}/prefab-servicedefs.json`, `${dest}/app-prefabs-${dir}-servicedefs.json`);
+					}
+				}
+				res();
+			});
+		}, () => Promise.resolve());
 };
 
 const generateSecurityInfo = async (sourceDir) => {
