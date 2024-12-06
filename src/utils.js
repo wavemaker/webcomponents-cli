@@ -265,14 +265,13 @@ const generateDocs = async(sourceDir) => {
 	let appName = global.WMPropsObj.displayName;
 	let appTag = appName.toLowerCase();
 	let codeSnippet = escapeHtml(`<wm-${appTag}></wm-${appTag}>`);
-	let script = escapeHtml(`<script src="http[s]://HOST_NAME/wm-element.js"></script>&#10;<script src="http[s]://HOST_NAME/wm-${appTag}.js" type="module"></script>`);
-	let config = escapeHtml(`<script>&#10;&#9;const WM_APPS_META = {&#10;&#9;&#9;${appTag}: {&#10;&#9;&#9;&#9;apiUrl: "http[s]://HOST_NAME/<>"&#10;&#9;&#9;},&#10;&#9;}&#10;</script>`);
+	let script = escapeHtml(`<script src="http[s]://HOST_NAME/bootstrap-${appTag}.js" data-api-url="http[s]://API_HOST_NAME/<>"></script>`);
 	let prefabProps = "";
 	if(isPrefabProject()) {
 		//prefabProps = fs.readFileSync(`${getTargetDir(sourceDir)}/docs/index.html`, 'utf8');
 	}
 	const docsTemplate = getHandlebarTemplate('docs-html');
-	const docsHtml = docsTemplate({appName, codeSnippet, script, config, prefabProps});
+	const docsHtml = docsTemplate({appName, codeSnippet, script, prefabProps});
 	try {
 		if (!fs.existsSync(`${getWCAppDir(sourceDir)}/resources/docs`)) {
 			fs.mkdirSync(`${getWCAppDir(sourceDir)}/resources/docs`, { recursive: true });

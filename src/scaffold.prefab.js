@@ -33,7 +33,7 @@ async function updateAppVariables(sourceDir) {
 
 async function addMainPage(sourceDir) {
 	let prefabName = global.WMPropsObj.name, prefabAttrs = '';
-	let srcDir = `${node_path.resolve(__dirname, './templates/Main')}`;
+	let srcDir = `${node_path.resolve(__dirname, './templates/components/Main')}`;
 	let destDir = `${getSrcPagesDir(sourceDir)}/Main`;
 
 	copyDirWithExclusionsSync(srcDir, destDir, ["main.component.ts.hbs", "main.html.ts.hbs"]);
@@ -42,7 +42,7 @@ async function addMainPage(sourceDir) {
 }
 
 async function addCommonPage(sourceDir) {
-	let srcDir = `${node_path.resolve(__dirname, './templates/Common')}`;
+	let srcDir = `${node_path.resolve(__dirname, './templates/components/Common')}`;
 	let destDir = `${getSrcPagesDir(sourceDir)}/Common`;
 	copyDirWithExclusionsSync(srcDir, destDir, []);
 

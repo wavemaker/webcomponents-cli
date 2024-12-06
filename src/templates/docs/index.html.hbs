@@ -11,7 +11,7 @@
                 line-height: 1.6;
                 color: #333;
                 max-width: 800px;
-                margin: 0 auto;
+                margin: auto 50px;
                 padding: 20px;
                 background-color: #f4f4f4;
             }
@@ -80,22 +80,19 @@
                             </td>
                         </tr>
                         <tr>
-                            <td><label>Scripts </label></td>
+                            <td><label>Script Tag </label></td>
                             <td>
                                 <pre><code>{{{script}}}</code></pre>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><label>API URL Config </label></td>
-                            <td>
-                                <pre><code>{{{config}}}</code></pre>
+                                <div class="note">
+                                    <strong>Note:</strong> The 'data-api-url' attribute is optional and specifies the URL where the backend API for the WebComponent is hosted.
+                                </div>
+                                <div class="note">
+                                    <strong>Note:</strong> Replace <code>HOST_NAME</code> & <code>API_HOST_NAME</code> with the appropriate hostname(s) and <code>&lt;&gt;</code> with the specific API endpoint path.
+                                </div>
                             </td>
                         </tr>
 					</tbody>
 				</table>
-                <div class="note">
-                    <strong>Note:</strong> Replace <code>HOST_NAME</code> with the appropriate hostname and <code>&lt;&gt;</code> with the specific API endpoint path.
-                </div>
 			<div>
             <div>
                 {{prefabProps}}

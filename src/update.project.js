@@ -206,6 +206,11 @@ const updateAngularJson = async(sourceDir) => {
 		},
 		{
 			"glob": "**/*",
+			"input": "resources/bootstrap/",
+			"output": "."
+		},
+		{
+			"glob": "**/*",
 			"input": "resources/docs/",
 			"output": "/docs/"
 		},
@@ -466,7 +471,7 @@ const updateAppModuleWithPrefabUrls = async (sourceDir, appName) => {
         import { getPrefabConfig } from '../framework/util/page-util';
         export function downloadPrefabsScripts() {
 			//@ts-ignore
-			let prefabBaseUrl = WM_APPS_META["prefabwebcomponent"].artifactsUrl;
+			let prefabBaseUrl = WM_APPS_META["${appName}"].artifactsUrl;
 			let usedPrefabs = ${prefabsStr};
 			usedPrefabs.forEach(function(prefabName){
 				let prefabConfig = getPrefabConfig(prefabName);
@@ -763,10 +768,23 @@ const generateDist = async(sourceDir) => {
 	await generateSecurityInfo(sourceDir);
 	await copyResourceFiles(sourceDir);
 
+	await copyBootstrapScript(sourceDir);
 	await installDeps(sourceDir);
 	await buildApp(sourceDir);
 	await copyWebComponentArtifacts(sourceDir);
 };
+
+async function copyBootstrapScript(sourceDir) {
+	let appName = (global.appName).toLowerCase();
+	const bootstrapTemplate = getHandlebarTemplate('bootstrap');
+	const bootstrapContent = bootstrapTemplate({appName});
+	try {
+		fs.mkdirSync(`${getWCAppDir(sourceDir)}/resources/bootstrap`, { recursive: true });
+		fs.writeFileSync(`${getWCAppDir(sourceDir)}/resources/bootstrap/bootstrap-${appName}.js`, bootstrapContent);
+	} catch (err) {
+		console.error(`Error creating bootstrap file - ${getWCAppDir(sourceDir)}/resources/bootstrap/bootstrap-${appName}.js`, err);
+	}
+}
 
 const generateDummyUIBuildDir = async(sourceDir) => {
 	let targetDir = node_path.resolve(`${sourceDir}/target/ui-build/output-files`);
