@@ -4,14 +4,19 @@ const {
 	updatePackageJson,
 	updateAngularJson,
 	updateMainTsFile,
-	updateModule,
+	updateAppModule,
 	updateMainFile,
-	updatePrefabFile,
-	generateDist
+	updateComponentFiles,
+	generateDist,
+	generateDummyUIBuildDir
 } = require('./update.project');
 const { printFailure, updateStatus, endStatus, printHeader, initStatus} = require('./console.utils');
 const { initTemplates } = require('./template.helpers');
-const { initMaven } = require('./maven.utils');
+const { logProjectMetadata, generateDocs, isPrefabProject} = require("./utils");
+
+const path = require('path');
+const {scaffoldPrefabProject} = require("./scaffold.prefab");
+const fs = require("fs");
 
 const argv = require("yargs")
 	.usage("Usage: $0 -s [source WaveMaker Prefab project path]")
@@ -37,26 +42,52 @@ const addNgElementToApp = async (source) => {
 	await updatePackageJson(source);
 	await updateAngularJson(source);
 	await updateMainTsFile(source);
-	await updateModule(source, source);
-	await updateMainFile(source);
-	await updatePrefabFile(source);
+	await updateAppModule(source);
+	//if(global.WMPropsObj.type === "PREFAB") {
+		await updateMainFile(source);
+	//}
+	await updateComponentFiles(source);
+
+	updateStatus(`Generating documentation...`);
+	await generateDocs(source);
 
 	updateStatus(`Generating the dist...`);
 	await generateDist(source);
+	await generateDummyUIBuildDir(source);
 };
+
+const convertToAbsolutePath = async (source) => {
+	if (path.isAbsolute(source)) {
+		return source;
+	}
+	return path.resolve(source);
+}
+
+async function restoreBackUpWMPropsFile(sourceDir) {
+	const fileName = ".wmproject.properties"
+	const bkFileName = ".wmproject.properties.bk"
+	fs.copyFileSync(`${sourceDir}/${bkFileName}`, `${sourceDir}/${fileName}`);
+}
 
 (async () => {
 	printHeader();
+	argv.source = await convertToAbsolutePath(argv.source);
+	let sourceDir = argv.source;
+	await logProjectMetadata(argv.source);
 	initStatus();
 	try {
 		if (argv.source) {
 			initTemplates();
 
-			updateStatus(`Compiling the java sources...`);
-			await initMaven(argv.source);
+			if(isPrefabProject()) {
+				await scaffoldPrefabProject(sourceDir)
+			}
+			updateStatus(`Transpiling the Project...`);
+			await addNgElementToApp(sourceDir);
 
-			updateStatus(`Transpiling the Prefab project...`);
-			await addNgElementToApp(argv.source);
+			if(isPrefabProject()) {
+				await restoreBackUpWMPropsFile(sourceDir)
+			}
 		}
 	} catch (e) {
 		printFailure(e);

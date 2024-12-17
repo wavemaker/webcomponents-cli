@@ -2,7 +2,7 @@ const fsextra = require('fs-extra');
 const concat = require('concat');
 const fs = require('fs');
 const path = require('path');
-const prefabName = process.argv[2].split("=")[1];
+const appName = process.argv[2].split("=")[1];
 
 (async function postBuild() {
     const files = [
@@ -13,7 +13,7 @@ const prefabName = process.argv[2].split("=")[1];
     ];
 
     await concat(files, './dist/ng-bundle/wm-element.js');
-    fs.renameSync(`./dist/ng-bundle/main.js`, `./dist/ng-bundle/wmp-${prefabName}.js`);
+    fs.renameSync(`./dist/ng-bundle/main.js`, `./dist/ng-bundle/wm-${appName}.js`);
 
     const deleteUnusedLocaleFiles = async () => {
         let localeDirs = ['./dist/ng-bundle/locales/angular/global', './dist/ng-bundle/locales/fullcalendar', './dist/ng-bundle/locales/moment'];

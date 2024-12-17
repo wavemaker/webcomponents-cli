@@ -4,12 +4,12 @@ import { HttpInterceptor, HttpRequest, HttpResponse, HttpHandler, HttpEvent, HTT
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import  { createCustomElement } from '@angular/elements';
-import { MainComponent } from "./pages/Main/Main.component";
+{{{componentImports}}}
 import { APP_INITIALIZER } from '@angular/core';
 
 export const PREFAB_NAME = new InjectionToken<string>('Prefab Name');
 
-export function initMetadata(prefabName) {
+export function initMetadata(appName) {
     return () => {
         try {
             //@ts-ignore
@@ -18,10 +18,10 @@ export function initMetadata(prefabName) {
             //no prefabs present. just ignore the error
         }
         //@ts-ignore
-        let baseAPIUrl = WM_APPS_META[prefabName].apiUrl;
+        let baseAPIUrl = WM_APPS_META[appName].apiUrl;
         //@ts-ignore
-        let artifactsUrl = WM_APPS_META[prefabName].artifactsUrl;
+        let artifactsUrl = WM_APPS_META[appName].artifactsUrl;
         //@ts-ignore
-        __webpack_require__.p = __webpack_public_path__ = artifactsUrl || 'ng-bundle/';
+        __webpack_require__.p = __webpack_public_path__ = artifactsUrl || '/ng-bundle/';
     };
 }

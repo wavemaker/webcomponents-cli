@@ -12,7 +12,9 @@ const { log, error } = require("./console.utils");
  * @returns {Promise<void>}
  */
 const invokeMaven = async (sourceDir) => {
-	await execCommand(`cd ${sourceDir} && mvn clean install`);
+	let isPublicApp = global.appRuntimeVersion.indexOf("next") === -1;
+	let mvnCommand = isPublicApp ? `mvn clean install` : `mvn clean install -Pwavemaker-internal`;
+	await execCommand(`cd ${sourceDir} && ${mvnCommand}`);
 };
 
 const replaceUIBuildJS = async (sourceDir) => {
@@ -35,7 +37,9 @@ const replaceUIBuildJS = async (sourceDir) => {
  */
 const initMaven = async (sourceDir) => {
 	//await updateProfiles(sourceDir);
-	await replaceUIBuildJS(sourceDir);
+	if(global.WMPropsObj.type === "PREFAB") {
+		await replaceUIBuildJS(sourceDir);
+	}
 	await invokeMaven(sourceDir);
 }
 

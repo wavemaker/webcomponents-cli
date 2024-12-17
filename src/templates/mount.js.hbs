@@ -1,4 +1,21 @@
-(function(prefabName) {
+(function(appName) {
+    wcAppName = appName;
+
+    (function(appComponentElement){
+        try {
+            const wmAppClassElement = document.createElement('div');
+            wmAppClassElement.classList.add('wm-app');
+            if(!appComponentElement) {
+               console.error(`"The wm-${wcAppName} WebComponent element is not available in the DOM at the time of script loading`);
+            }
+            appComponentElement.parentNode.insertBefore(wmAppClassElement, appComponentElement);
+            wmAppClassElement.appendChild(appComponentElement);
+        } catch(error) {
+            //console.log("---error---", error)
+        }
+    })(document.querySelector(`wm-${wcAppName}`))
+
+
     const mountStyle = (styleSheetUrl) => {
         var head  = document.getElementsByTagName('head')[0];
         var link  = document.createElement('link');
@@ -13,11 +30,11 @@
         let styles= ["wm-styles.css", "styles.css"];
         styles.map(function(stylesheet) {
             //@ts-ignore
-            let artifactsUrl = WM_APPS_META[prefabName].artifactsUrl;
+            let artifactsUrl = WM_APPS_META[appName].artifactsUrl;
             artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl)
             mountStyle(artifactsUrl + '/' + stylesheet);
         });
     }
 
     mountStyles();
-})("{{prefabName}}")
+})("{{appName}}")

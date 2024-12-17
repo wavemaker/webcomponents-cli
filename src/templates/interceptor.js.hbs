@@ -20,14 +20,32 @@ export class WMInterceptor implements HttpInterceptor {
         let isPathMappingReq = request.url.indexOf("path_mapping.json") !== -1;
         let isi18nReq = request.url.indexOf("resources/i18n") !== -1;
         let servicedefsReq = request.url.indexOf("servicedefs") !== -1;
+        let infoReq = request.url.indexOf("info") !== -1;
 
         //@ts-ignore
-        let apiUrl = WM_APPS_META["{{prefabName}}"].apiUrl, artifactsUrl = WM_APPS_META["{{prefabName}}"].artifactsUrl;
+        let apiUrl = WM_APPS_META["{{appName}}"].apiUrl, artifactsUrl = WM_APPS_META["{{appName}}"].artifactsUrl;
         if (redirectToWm) {
-            if(isi18nReq || servicedefsReq) {
+            if(isi18nReq || servicedefsReq || infoReq) {
                 let fileName = request.url.split("/").pop();
-                artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl)
-                request = request.clone({url:artifactsUrl+'/'+fileName});
+                artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl);
+                let reqUrl = artifactsUrl+'/'+fileName;
+                if(fileName === "servicedefs") {
+                    fileName = "app-servicedefs.json";
+                    let prefabNameRegex = request.url.match(/services\/prefabs\/([^/]+)\/servicedefs/);
+                    if(prefabNameRegex) {
+                        fileName = "app-prefabs-"+prefabNameRegex[1]+"-servicedefs.json"
+                        //fileName = "app-prefabs-servicedefs.json"
+                    }
+                    reqUrl = artifactsUrl+'/servicedefs/'+fileName
+                }
+                if(fileName === "info") {
+                    fileName = "info.json";
+                    reqUrl = artifactsUrl+'/security/'+fileName
+                }
+                if(isi18nReq) {
+                    reqUrl = artifactsUrl+'/i18n/'+fileName
+                }
+                request = request.clone({ url: reqUrl });
             } else {
                 apiUrl = (apiUrl.slice(-1) === "/" ? apiUrl.slice(0, -1) : apiUrl)
                 request = request.clone({url:apiUrl+'/'+request.url});
@@ -44,4 +62,35 @@ export class WMInterceptor implements HttpInterceptor {
 
         return next.handle(request);
     }
+}
+
+import { Router, NavigationStart } from '@angular/router';
+
+@Injectable({
+    providedIn: 'root',
+})
+export class SkipLocationChangeService {
+    private isNavigatingWithSkipLocationChange = false;
+
+    constructor(private router: Router) {}
+
+    init() {
+        this.router.events.subscribe(event => {
+            if (event instanceof NavigationStart) {
+                if (!this.isNavigatingWithSkipLocationChange) {
+                    // Set the flag to prevent infinite loops
+                    this.isNavigatingWithSkipLocationChange = true;
+                    // Navigate with skipLocationChange
+                    this.router.navigateByUrl(event.url, { skipLocationChange: true });
+                } else {
+                    // Reset the flag after the navigation completes
+                    this.isNavigatingWithSkipLocationChange = false;
+                }
+            }
+        });
+    }
+}
+
+export function initializeSkipLocationChange(service: SkipLocationChangeService) {
+    return () => service.init();
 }
