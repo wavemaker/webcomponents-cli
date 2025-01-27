@@ -46,6 +46,13 @@ const {
 
 const { getHandlebarTemplate, safeString } = require('./template.helpers');
 
+const loadCodegenDynamically = async (sourceDir) => {
+	let codegenPath = node_path.resolve(node_path.join(`${sourceDir}`, 'node_modules', '@wavemaker', 'angular-codegen')),
+		codegenCli = node_path.resolve(node_path.join(`${codegenPath}`,	'src', 'codegen-cli.js'));
+	// Use `eval` to prevent Webpack from analyzing the `require` call statically, where as the path is dynamic
+	return eval('require')(codegenCli);
+}
+
 const generateNgCode = async (sourceDir) => {
 	let targetDir = node_path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
 	let wmNgCodegenPkg = `@wavemaker/angular-codegen@${global.appRuntimeVersion}`;
@@ -62,8 +69,8 @@ const generateNgCode = async (sourceDir) => {
 		}
 	}
 
-	let codegenPath = node_path.resolve(`${sourceDir}/node_modules/@wavemaker/angular-codegen`), codegenCli = node_path.resolve(`${codegenPath}/src/codegen-cli.js`);
-	const { generateCodegenAngularApp } = require(codegenCli);
+	let codegenPath = node_path.resolve(node_path.join(`${sourceDir}`, 'node_modules', '@wavemaker', 'angular-codegen'));
+	const { generateCodegenAngularApp } = await loadCodegenDynamically(sourceDir);
 	let deployUrl = `ng-bundle/`, apiUrl = "./";
 
 	console.log('Generating the angular App...');
