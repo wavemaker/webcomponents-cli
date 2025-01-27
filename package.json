@@ -1,6 +1,6 @@
 {
   "name": "@wavemaker/webcomponents-cli",
-  "version": "0.0.35",
+  "version": "0.0.36",
   "description": "A CLI to convert WaveMaker Prefabs into WebComponents",
   "main": "index.js",
   "files": [
@@ -54,8 +54,8 @@
     "webpack-node-externals": "3.0.0"
   },
   "engines": {
-    "node": ">=18.16.1",
-    "npm": ">=9.5.1"
+    "node": "~22.11.0",
+    "npm": "~10.9.0"
   },
   "engineStrict": true
 }

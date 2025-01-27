@@ -2,15 +2,12 @@
 export class WMInterceptor implements HttpInterceptor {
 
     WM_REDIRECTS = [
+        "services",
         "/services",
-        "/prefabs",
-        "/resources",
-        "resources/",
-        "./services/",
-        "./prefabs/",
-        "ng-bundle",
         "j_spring_security_check",
-        "/j_spring_security_check"
+        "/j_spring_security_check",
+        "j_spring_security_logout",
+        "/j_spring_security_logout"
     ];
 
     intercept(request:HttpRequest<any>, next:HttpHandler):Observable<HttpEvent<any>> {
@@ -29,7 +26,7 @@ export class WMInterceptor implements HttpInterceptor {
                 let fileName = request.url.split("/").pop();
                 artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl);
                 let reqUrl = artifactsUrl+'/'+fileName;
-                if(fileName === "servicedefs") {
+                if(fileName.indexOf("servicedefs") !== -1) {
                     fileName = "app-servicedefs.json";
                     let prefabNameRegex = request.url.match(/services\/prefabs\/([^/]+)\/servicedefs/);
                     if(prefabNameRegex) {
@@ -38,8 +35,7 @@ export class WMInterceptor implements HttpInterceptor {
                     }
                     reqUrl = artifactsUrl+'/servicedefs/'+fileName
                 }
-                if(fileName === "info") {
-                    fileName = "info.json";
+                if(fileName === "info.json") {
                     reqUrl = artifactsUrl+'/security/'+fileName
                 }
                 if(isi18nReq) {
@@ -50,6 +46,11 @@ export class WMInterceptor implements HttpInterceptor {
                 apiUrl = (apiUrl.slice(-1) === "/" ? apiUrl.slice(0, -1) : apiUrl)
                 request = request.clone({url:apiUrl+'/'+request.url});
             }
+        } else {
+            let fileUrl = request.url.split("ng-bundle/")[1];
+            artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl);
+            let reqUrl = artifactsUrl+'/'+fileUrl;
+            request = request.clone({ url: reqUrl });
         }
         if (isPathMappingReq) {
             //just return empty data for path_mapping json request as all the files are
