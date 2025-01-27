@@ -21,7 +21,7 @@ export class WMInterceptor implements HttpInterceptor {
 
         //@ts-ignore
         let apiUrl = WM_APPS_META["{{appName}}"].apiUrl, artifactsUrl = WM_APPS_META["{{appName}}"].artifactsUrl;
-        if (redirectToWm) {
+        if (!redirectToWm) {
             if(isi18nReq || servicedefsReq || infoReq) {
                 let fileName = request.url.split("/").pop();
                 artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl);
@@ -47,7 +47,7 @@ export class WMInterceptor implements HttpInterceptor {
                 request = request.clone({url:apiUrl+'/'+request.url});
             }
         } else {
-            let fileUrl = request.url.split("ng-bundle/")[1];
+            let fileUrl = request.url.split("/")[1];
             artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl);
             let reqUrl = artifactsUrl+'/'+fileUrl;
             request = request.clone({ url: reqUrl });
