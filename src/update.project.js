@@ -144,6 +144,7 @@ const updatePackageJson = async(sourceDir) => {
 const copyWebComponentArtifacts = async( sourceDir ) => {
 	return new Promise((resolve, reject) => {
 		let distDir = getWCDistDir(sourceDir);
+		distDir = node_path.join(distDir, "ng-bundle");
 		let zipFile = getWCZipFile(sourceDir);
 
 		const output = fs.createWriteStream(zipFile);
@@ -159,10 +160,6 @@ const copyWebComponentArtifacts = async( sourceDir ) => {
 			reject(err);
 		});
 		archive.pipe(output);
-		archive.glob('**/*', {
-			cwd: distDir,
-			ignore: ['index.html'], // Exclude index.html
-		});
 		archive.directory(distDir, false);
 		archive.finalize();
 	});
