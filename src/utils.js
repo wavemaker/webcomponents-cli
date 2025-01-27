@@ -19,7 +19,7 @@ const WEB_COMPONENT_APP_DIR = "generated-angular-app";
 const CUSTOM_WEBPACK_CONFIG_FILE = "wc-custom-webpack.config.js";
 
 const getWCAppDir = sourceDir => path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
-const getWCDistDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist/ng-bundle`);
+const getWCDistDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist`);
 const getSrcDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/src`);
 const getBuildScriptsDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/build-scripts`);
 const getAppDir = sourceDir => path.resolve(`${getSrcDir(sourceDir)}/app`);

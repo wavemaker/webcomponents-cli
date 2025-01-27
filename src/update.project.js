@@ -48,22 +48,29 @@ const { getHandlebarTemplate, safeString } = require('./template.helpers');
 
 const generateNgCode = async (sourceDir) => {
 	let targetDir = node_path.resolve(`${sourceDir}/${WEB_COMPONENT_APP_DIR}`);
-	// let wmNgCodegenPkg = global.WMPropsObj.type === "PREFAB" ? '@wavemaker/angular-codegen@11.5.0-next.141661' : `@wavemaker/angular-codegen@${global.appRuntimeVersion}`;
 	let wmNgCodegenPkg = `@wavemaker/angular-codegen@${global.appRuntimeVersion}`;
 	try {
 		fs.mkdirSync(targetDir);
 		// log(`Target directory '${targetDir}' created successfully!`);
-		await execCommand(`cd ${sourceDir} && npm i --prefix . ${wmNgCodegenPkg} --no-save --no-package-lock`);
+		await execCommand(`cd ${sourceDir} && npm i --prefix . ${wmNgCodegenPkg} --legacy-peer-deps --no-save --no-package-lock`);
 	} catch (err) {
 		if (err.code === 'EEXIST') {
-			await execCommand(`cd ${sourceDir} && npm i --prefix . ${wmNgCodegenPkg} --no-save --no-package-lock`);
+			await execCommand(`cd ${sourceDir} && npm i --prefix . ${wmNgCodegenPkg} --legacy-peer-deps --no-save --no-package-lock`);
 			//log(`target directory '${targetDir}' already exists.`);
 		} else {
 			error(`Error creating directory: ${err.message}`);
 		}
 	}
-	let codegenPath = node_path.resolve(`${sourceDir}/node_modules/@wavemaker/angular-codegen`), codegenCli = node_path.resolve(`${codegenPath}/src/codegen-args-cli.js`);
-	await execCommand(`cd ${codegenPath} && node ${codegenCli} -s ${sourceDir} -t ${targetDir} --codegenPath=${codegenPath}/`);
+
+	let codegenPath = node_path.resolve(`${sourceDir}/node_modules/@wavemaker/angular-codegen`), codegenCli = node_path.resolve(`${codegenPath}/src/codegen-cli.js`);
+	const { generateCodegenAngularApp } = require(codegenCli);
+	let deployUrl = `ng-bundle/`, apiUrl = "./";
+
+	console.log('Generating the angular App...');
+	console.log("API-Url - ", apiUrl, " - CDN-Url - ", deployUrl);
+	await generateCodegenAngularApp(sourceDir, targetDir, deployUrl, false, codegenPath, false, false, apiUrl);
+	console.log('Angular app generated !');
+	// await execCommand(`cd ${codegenPath} && node ${codegenCli} -s ${sourceDir} -t ${targetDir} --codegenPath=${codegenPath}/`);
 }
 
 const getUpdatedFileForPublishing = async(sourceDir, packageJson) => {
@@ -145,6 +152,10 @@ const copyWebComponentArtifacts = async( sourceDir ) => {
 			reject(err);
 		});
 		archive.pipe(output);
+		archive.glob('**/*', {
+			cwd: distDir,
+			ignore: ['index.html'], // Exclude index.html
+		});
 		archive.directory(distDir, false);
 		archive.finalize();
 	});
@@ -152,9 +163,11 @@ const copyWebComponentArtifacts = async( sourceDir ) => {
 
 const installDeps = async sourceDir => {
 	await execCommand(`cd ${getWCAppDir(sourceDir)}`);
-	const file = getPackageLockJson(sourceDir);
-	rimraf.sync(file);
+	// const file = getPackageLockJson(sourceDir);
+	// rimraf.sync(file);
 	await execCommand(`cd ${getWCAppDir(sourceDir)} && npm i`);
+	//check this later
+	await execCommand(`cd ${getWCAppDir(sourceDir)} && npm i acorn@8.14.0 --save-dev`);
 }
 
 const buildApp = async sourceDir => {
@@ -182,6 +195,8 @@ const updateAngularJson = async(sourceDir) => {
 	const build = ngJson["projects"]["angular-app"]["architect"]["build"];
 	const buildOptions = build["options"];
 
+	buildOptions["outputPath"] = 'dist/ng-bundle';
+	buildOptions["index"]["output"] = '../index.html';
 	buildOptions["scripts"] = removeScriptsLazyEntries(buildOptions["scripts"]);
 	buildOptions["styles"] = removeStylesLazyEntries(buildOptions["styles"]);
 	buildOptions["customWebpackConfig"]["path"] = `./${CUSTOM_WEBPACK_CONFIG_FILE}`;

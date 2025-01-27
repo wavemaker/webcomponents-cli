@@ -166,9 +166,22 @@ async function copyServices(sourceDir) {
 	const directories = dirsList.filter(dir => dir.isDirectory());
 	directories.forEach(dir => {
 		const subDirPath = node_path.join(`${sourceDir}/services`, dir.name);
-		copyFile(`${dir.name}_apiTarget.json`, `${subDirPath}/src`, `${getSrcWebappDir(sourceDir)}/WEB-INF/prefabs/${global.WMPropsObj.name}/config`)
-		copyFile(`service_${dir.name}.spring.xml`, `${subDirPath}/src`, `${getSrcWebappDir(sourceDir)}/WEB-INF/prefabs/${global.WMPropsObj.name}/config/prefab`)
-		copyFile(`${dir.name}.properties`, `${subDirPath}/src/conf`, `${getSrcWebappDir(sourceDir)}/WEB-INF/prefabs/${global.WMPropsObj.name}/config/prefab-conf`)
+		// copyFile(`${dir.name}_apiTarget.json`, `${subDirPath}/src`, `${getSrcWebappDir(sourceDir)}/WEB-INF/prefabs/${global.WMPropsObj.name}/config`)
+		// copyFile(`service_${dir.name}.spring.xml`, `${subDirPath}/src`, `${getSrcWebappDir(sourceDir)}/WEB-INF/prefabs/${global.WMPropsObj.name}/config/prefab`)
+		// copyFile(`${dir.name}.properties`, `${subDirPath}/src/conf`, `${getSrcWebappDir(sourceDir)}/WEB-INF/prefabs/${global.WMPropsObj.name}/config/prefab-conf`)
+		const apiTargetFile = `${dir.name}_apiTarget.json`;
+		const springXmlFile = `service_${dir.name}.spring.xml`;
+		const propertiesFile = `${dir.name}.properties`;
+
+		if (fs.existsSync(`${subDirPath}/src/${apiTargetFile}`)) {
+			copyFile(apiTargetFile, `${subDirPath}/src`, `${getSrcWebappDir(sourceDir)}/WEB-INF/prefabs/${global.WMPropsObj.name}/config`);
+		}
+		if (fs.existsSync(`${subDirPath}/src/${springXmlFile}`)) {
+			copyFile(springXmlFile, `${subDirPath}/src`, `${getSrcWebappDir(sourceDir)}/WEB-INF/prefabs/${global.WMPropsObj.name}/config/prefab`);
+		}
+		if (fs.existsSync(`${subDirPath}/src/conf/${propertiesFile}`)) {
+			copyFile(propertiesFile, `${subDirPath}/src/conf`, `${getSrcWebappDir(sourceDir)}/WEB-INF/prefabs/${global.WMPropsObj.name}/config/prefab-conf`);
+		}
 	});
 }
 

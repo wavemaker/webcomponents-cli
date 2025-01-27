@@ -35,7 +35,9 @@ export class {{componentName}} extends {{#if enableSpa}}BaseSpaPageComponent{{el
     }
 
     ngAfterViewInit() {
-        this.bindFnsToPrefab();
+        if(this.prefabDirective) {
+            this.bindFnsToPrefab();
+        }
 
         // @ts-ignore
         if(super.ngAfterViewInit) {
