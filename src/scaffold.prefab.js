@@ -8,13 +8,22 @@ const {
 	getSrcPagesDir,
 	readFileSync,
 	getSrcWebappDir,
-	updateGlobalProps, getPrefabsDir, getSrcDir, getSrcAppDir, getTargetDir
+	updateGlobalProps, getPrefabsDir, getSrcDir, getSrcAppDir, getTargetDir,
+	getServicesDir
 } = require("./utils");
 const xml2js = require('xml2js');
 const {getHandlebarTemplate} = require("./template.helpers");
 const {join} = require("path");
 global._ = require('lodash');
 
+async function copyAuthInfoFile(sourceDir) {
+	let servicesDir = await getServicesDir(sourceDir);
+	if (!fs.existsSync(`${servicesDir}`)) {
+		fs.mkdirSync(`${servicesDir}`, { recursive: true });
+	}
+	const authInfoTemplate = getHandlebarTemplate('auth-info-json');
+	await writeFile(`${servicesDir}/auth-info.json`, authInfoTemplate({}));
+}
 
 async function copyFomattersFile(sourceDir) {
 	let extensionsDir = await getExtensionsDir(sourceDir);
@@ -210,6 +219,7 @@ const scaffoldPrefabProject = async(sourceDir) => {
 	await updateWMProperties(`${getSrcWebappDir(sourceDir)}/WEB-INF/prefabs/${global.WMPropsObj.name}`, "studioProjectUpgradeVersion", false);
 
 	await copyFomattersFile(sourceDir);
+	await copyAuthInfoFile(sourceDir);
 	await updateAppVariables(sourceDir);
 	await addMainPage(sourceDir);
 	await addCommonPage(sourceDir);

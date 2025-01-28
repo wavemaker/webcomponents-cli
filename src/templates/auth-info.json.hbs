@@ -1,0 +1,39 @@
+{
+  "enforceSecurity" : false,
+  "loginConfig" : {
+    "type" : "PAGE",
+    "pageName" : "Login",
+    "cookieMaxAge" : -1,
+    "cookiePath" : "",
+    "cookieBase64Encode" : true,
+    "jvmRoute" : "",
+    "sameSite" : "",
+    "sessionTimeout" : {
+      "type" : "DIALOG",
+      "pageName" : null,
+      "timeoutValue" : 30
+    },
+    "sessionConcurrencyConfig" : {
+      "maxSessionsAllowed" : -1
+    }
+  },
+  "rememberMeConfig" : {
+    "enabled" : true,
+    "tokenValiditySeconds" : 1296000
+  },
+  "tokenAuthConfig" : {
+    "enabled" : true,
+    "parameter" : "WM_AUTH_TOKEN",
+    "tokenValiditySeconds" : 1800
+  },
+  "csrfConfig" : {
+    "enforceCsrfSecurity" : true,
+    "headerName" : "X-WM-XSRF-TOKEN",
+    "cookieName" : "wm_xsrf_token"
+  },
+  "sessionPersistenceConfig" : {
+    "enabledType" : "IN_MEMORY"
+  },
+  "authProviders" : [ ],
+  "activeAuthProviderTypes" : null
+}

@@ -53,6 +53,7 @@ const getWCZipFile = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/wc-ar
 const getServiceDefsDir = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/classes/servicedefs`);
 const getNgBundle = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist/ng-bundle`);
 const getComponentName = name => `${upperFirst(name)}Component`;
+const getServicesDir = sourceDir => path.resolve(`${sourceDir}/services/securityService/designtime`);
 
 global.WMPropsObj = {};
 
@@ -330,5 +331,6 @@ module.exports = {
 	copyDirWithExclusionsSync,
 	updateGlobalProps,
 	generateDocs,
-	isPrefabProject
+	isPrefabProject,
+	getServicesDir
 }
