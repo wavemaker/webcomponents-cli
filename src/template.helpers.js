@@ -23,6 +23,7 @@ const  initTemplates = () => {
 	templates.set('app-variables-json', Handlebars.compile(fs.readFileSync(templatePath+'/app.variables.json.hbs', 'utf-8')))
 	templates.set('docs-html', Handlebars.compile(fs.readFileSync(templatePath+'/docs/index.html.hbs', 'utf-8')));
 	templates.set('bootstrap', Handlebars.compile(fs.readFileSync(templatePath+'/bootstrap/bootstrap.js.hbs', 'utf-8')));
+	templates.set('auth-info-json', Handlebars.compile(JSON.stringify(fs.readFileSync(templatePath+'/auth-info.json.hbs'))));
 };
 
 const getHandlebarTemplate = templateName => templates.get(templateName);
