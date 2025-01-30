@@ -681,7 +681,7 @@ const copyUIResources = async (sourceDir) => {
 	let uiResourcesDir = getUIResourcesDir(sourceDir);
 	let targetDir = `${getGenNgDir(sourceDir)}/resources`;
 	try {
-		copyDirWithExclusionsSync(uiResourcesDir, targetDir, ['resources']);
+		copyDirWithExclusionsSync(uiResourcesDir, targetDir, ['resources', 'docs']);
 		copyDirWithExclusionsSync(`${uiResourcesDir}/resources`, targetDir, []);
 		console.log(`Copied ${uiResourcesDir} to ${targetDir}`);
 	} catch (err) {
