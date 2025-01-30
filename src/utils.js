@@ -269,7 +269,7 @@ const generateDocs = async(sourceDir) => {
 	let script = escapeHtml(`<script src="http[s]://HOST_NAME/bootstrap-${appTag}.js" data-api-url="http[s]://API_HOST_NAME/<>"></script>`);
 	let prefabProps = "";
 	if(isPrefabProject()) {
-		//prefabProps = fs.readFileSync(`${getTargetDir(sourceDir)}/docs/index.html`, 'utf8');
+		prefabProps = fs.readFileSync(`${getTargetDir(sourceDir)}/ui-resources/docs/index.html`, 'utf8');
 	}
 	const docsTemplate = getHandlebarTemplate('docs-html');
 	const docsHtml = docsTemplate({appName, codeSnippet, script, prefabProps});
