@@ -263,7 +263,7 @@ const escapeHtml = (htmlString) => {
 }
 
 const generateDocs = async(sourceDir) => {
-	let appName = global.WMPropsObj.displayName;
+	let appName = global.WMPropsObj.name;
 	let appTag = appName.toLowerCase();
 	let codeSnippet = escapeHtml(`<wm-${appTag}></wm-${appTag}>`);
 	let script = escapeHtml(`<script src="http[s]://HOST_NAME/bootstrap-${appTag}.js" data-api-url="http[s]://API_HOST_NAME/<>"></script>`);

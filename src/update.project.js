@@ -525,6 +525,25 @@ const updateAppModule = async(sourceDir) => {
 
 };
 
+const updatePrefabScriptFile = async(sourceDir) => {
+
+	const prefabName = global.WMPropsObj.name;
+	const filePath = `${getWCAppDir(sourceDir)}/src/app/prefabs/${prefabName}/${prefabName}.component.script.js`;
+	let fileContent = fs.readFileSync(filePath, 'utf8');
+
+	const prefabScript = getHandlebarTemplate('prefab-component-script-js');
+	const prefabScriptContent = prefabScript({});
+
+	fileContent = fileContent.replace(
+		/(export\s+const\s+initScript\s*=\s*\(\s*Prefab\s*,\s*App\s*,\s*Utils\s*\)\s*=>\s*\{)/,
+		`$1
+		${prefabScriptContent}
+		`
+	);
+
+	fs.writeFileSync(filePath, fileContent, 'utf8');
+	console.log("prefab comp ts file updated");
+} 
 
 const updateMainFile = async(sourceDir) => {
 	let markup, pageName = "Main", wmProjectProperties = getWMPropsObject(sourceDir), prefabName = wmProjectProperties.name;
@@ -826,6 +845,7 @@ module.exports = {
 	updateAngularJson,
 	updateMainTsFile,
 	updateAppModule,
+	updatePrefabScriptFile,
 	updateMainFile,
 	updateComponentFiles,
 	generateDist,

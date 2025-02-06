@@ -1,6 +1,6 @@
 {
   "name": "@wavemaker/webcomponents-cli",
-  "version": "0.0.40",
+  "version": "0.0.41",
   "description": "A CLI to convert WaveMaker Prefabs into WebComponents",
   "main": "index.js",
   "files": [
