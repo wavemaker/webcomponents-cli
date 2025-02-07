@@ -1,0 +1,39 @@
+    var prefabName = "wm" + Prefab.prefabName.charAt(0).toUpperCase() + Prefab.prefabName.slice(1);
+	window[prefabName] = {};
+	
+    window[prefabName].prefabName = Prefab.prefabName;
+
+    const prefabActions = Prefab.prefabMngr.prefabConfigProvider.getConfig(`${Prefab.prefabName}`).__zone_symbol__value;
+    var events = {};
+    var methods = {};
+    var properties = {};
+
+        
+    if(prefabActions.methods !== undefined){
+        methods = Object.keys(prefabActions.methods);
+
+        methods.forEach( method=> {
+            window[prefabName][method] = function(...args) {
+                return Prefab[method](...args);
+            }
+        })
+    }
+
+    if(prefabActions.properties !== undefined){
+        properties = Object.keys(prefabActions.properties);
+
+        properties.forEach(property=>{
+            Object.defineProperty(window[prefabName], property, {
+                get (){
+                    return Prefab[property];
+                },
+                set (value) {
+                    Prefab[property] = value
+                }
+            });
+        });
+    }  
+
+    
+
+    

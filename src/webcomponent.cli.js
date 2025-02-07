@@ -8,7 +8,8 @@ const {
 	updateMainFile,
 	updateComponentFiles,
 	generateDist,
-	generateDummyUIBuildDir
+	generateDummyUIBuildDir,
+	updatePrefabScriptFile
 } = require('./update.project');
 const { printFailure, updateStatus, endStatus, printHeader, initStatus} = require('./console.utils');
 const { initTemplates } = require('./template.helpers');
@@ -46,6 +47,9 @@ const addNgElementToApp = async (source) => {
 	//if(global.WMPropsObj.type === "PREFAB") {
 		await updateMainFile(source);
 	//}
+	if(global.WMPropsObj.type === "PREFAB"){
+		await updatePrefabScriptFile(source);
+	}
 	await updateComponentFiles(source);
 
 	updateStatus(`Generating documentation...`);

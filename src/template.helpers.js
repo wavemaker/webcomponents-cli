@@ -24,6 +24,7 @@ const  initTemplates = () => {
 	templates.set('docs-html', Handlebars.compile(fs.readFileSync(templatePath+'/docs/index.html.hbs', 'utf-8')));
 	templates.set('bootstrap', Handlebars.compile(fs.readFileSync(templatePath+'/bootstrap/bootstrap.js.hbs', 'utf-8')));
 	templates.set('auth-info-json', Handlebars.compile(JSON.stringify(fs.readFileSync(templatePath+'/auth-info.json.hbs'))));
+	templates.set('prefab-component-script-js', Handlebars.compile((fs.readFileSync(templatePath+'/prefab/prefab.component.script.js.hbs', 'utf-8'))));
 };
 
 const getHandlebarTemplate = templateName => templates.get(templateName);
