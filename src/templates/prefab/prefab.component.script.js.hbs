@@ -12,11 +12,13 @@
     if(prefabActions.methods !== undefined){
         methods = Object.keys(prefabActions.methods);
 
-        methods.forEach( method=> {
-            window[prefabName][method] = function(...args) {
-                return Prefab[method](...args);
-            }
-        })
+        methods.forEach( method => {
+            Object.defineProperty( window[prefabName], method, {
+                get () {
+                    return Prefab[method];
+                }
+            } )
+        } )
     }
 
     if(prefabActions.properties !== undefined){
