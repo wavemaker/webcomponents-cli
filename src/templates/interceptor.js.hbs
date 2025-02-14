@@ -44,7 +44,13 @@ export class WMInterceptor implements HttpInterceptor {
                 request = request.clone({ url: reqUrl });
             } else {
                 apiUrl = (apiUrl.slice(-1) === "/" ? apiUrl.slice(0, -1) : apiUrl)
-                request = request.clone({url:apiUrl+'/'+request.url});
+                const requestUrl = request.url;
+                try {
+                    const parsedUrl = new URL(requestUrl);
+                     request = request.clone({url:request.url});
+                } catch(error) {
+                    request = request.clone({url:apiUrl+'/'+request.url});
+                }
             }
         } else {
             let fileUrl = request.url.split("/")[1];

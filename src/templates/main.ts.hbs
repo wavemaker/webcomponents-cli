@@ -144,8 +144,13 @@ function bootstrap(appModuleRef) {
     function transferAttributes(prefabElement: Element, wmprefabAttrElement: HTMLElement) {
         // Move attributes from <wm-app> to the child with `wmprefab`
         Array.from(prefabElement.attributes).forEach((attr) => {
-            if (!wmprefabAttrElement.hasAttribute(attr.name)) {
-                wmprefabAttrElement.setAttribute(attr.name, attr.value);
+            let attrName = attr.name;
+            if (attrName.startsWith("on") ) {
+                attrName = (attrName).substring(2).toLowerCase() + ".event";
+            } 
+
+            if (!wmprefabAttrElement.hasAttribute(attrName)) {
+                wmprefabAttrElement.setAttribute(attrName, attr.value);
             }
         });
     }
