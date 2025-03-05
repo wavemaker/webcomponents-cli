@@ -541,6 +541,11 @@ const updatePrefabScriptFile = async(sourceDir) => {
 		`
 	);
 
+	fileContent = fileContent.replace(
+        /(Prefab\.onReady\s*=\s*function\s*\(\)\s*\{)/,
+        `$1\n\t\tconst event = new CustomEvent('init');\n\t\ttargetNode.dispatchEvent(event);\n`
+    );
+
 	fs.writeFileSync(filePath, fileContent, 'utf8');
 	console.log("prefab comp ts file updated");
 } 
