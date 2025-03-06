@@ -38,28 +38,30 @@
 
     
     //events
-    const originalAddEventListener = targetNode.addEventListener;
-    events = Object.keys(prefabActions.events);
-
-    targetNode.addEventListener = function(type, listener, options) {
-        const eventName = `on${type}`;
-
-        if(type==='load' || type==='Load'){
-            Prefab.viewParent['onLoadCallBack'] = listener;
-            return;
-        }
-
-        if(type==='destroy' || type==='Destroy'){
-            Prefab.viewParent['onDestroyCallBack'] = listener;
-            return;
-        }
-
-        if (!events.includes(eventName)) {
-            originalAddEventListener.call(this, type, listener, options);
-        } else{
-            Prefab[`${eventName}`] = listener;
-        }
-    };
+    if(prefabActions.events !== undefined) {
+        const originalAddEventListener = targetNode.addEventListener;
+        events = Object.keys(prefabActions.events);
+    
+        targetNode.addEventListener = function(type, listener, options) {
+            const eventName = `on${type}`;
+    
+            if(type==='load' || type==='Load'){
+                Prefab.viewParent['onLoadCallBack'] = listener;
+                return;
+            }
+    
+            if(type==='destroy' || type==='Destroy'){
+                Prefab.viewParent['onDestroyCallBack'] = listener;
+                return;
+            }
+    
+            if (!events.includes(eventName)) {
+                originalAddEventListener.call(this, type, listener, options);
+            } else{
+                Prefab[`${eventName}`] = listener;
+            }
+        };
+    }
 
     let wcAppName = Prefab.prefabName.toLowerCase();
 
