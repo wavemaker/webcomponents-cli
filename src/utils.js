@@ -49,7 +49,7 @@ const geti18nDir = sourceDir => path.resolve(`${sourceDir}/i18n`);
 const getGenNgDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}`);
 const getTargetDir = sourceDir => path.resolve(`${sourceDir}/target`);
 const getUIResourcesDir = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/ui-resources`);
-const getWCZipFile = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/wc-artifact_${global.WMPropsObj.name}_v${global.WMPropsObj.version}.zip`);
+const getWCZipFile = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/wc-artifact.zip`);
 const getServiceDefsDir = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/classes/servicedefs`);
 const getNgBundle = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist/ng-bundle`);
 const getComponentName = name => `${upperFirst(name)}Component`;
