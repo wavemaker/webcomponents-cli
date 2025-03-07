@@ -128,8 +128,10 @@
                     let attrName = mutation.attributeName;
                     if(attrName.indexOf('data-processed') === -1) {
                         const newValue = mutation.target.getAttribute(attrName);
-                        wmPrefabElement.setAttribute(attrName, newValue);
-                        Prefab[attrName] = newValue;
+                        if(wmPrefabElement){
+                            wmPrefabElement.setAttribute(attrName, newValue);
+                            Prefab[attrName] = newValue;
+                        }
                     }
                 }
             }

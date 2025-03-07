@@ -16,13 +16,15 @@ if (environment.production) {
 
 let wcAppName = '';
 
+let hasBootstrapped = false;
+
 {{{mountStyles}}}
 
 function bootstrap(appModuleRef) {
     //default page to be rendered if nothing passed
     const router = appModuleRef.injector.get(Router);
 
-    function initializeComponent(retries = 0, maxRetries = 10) {
+    function initializeComponent() {
         let appComponentElement = document.querySelector(`wm-${wcAppName}`);
         if (appComponentElement) {
             const componentInstance = (appComponentElement as any).ngElementStrategy?.componentRef;
@@ -33,34 +35,8 @@ function bootstrap(appModuleRef) {
             setTimeout(function() {
                 appRef.tick();
             }, 1000);
-        } else if (retries < maxRetries) {
-            setTimeout(function() {
-                console.log(`Retry ${retries + 1}: trying again to find the component`);
-                initializeComponent(retries + 1, maxRetries);
-            }, 100);
-        } else {
-            console.error(`Maximum retries reached. Unable to find WebComponent wm-${wcAppName}`);
-        }
+        } 
     }
-    let currentUrl = window.location.pathname;
-
-    const observer = new MutationObserver((mutations) => {
-        const newUrl = window.location.pathname;
-        if (newUrl !== currentUrl) {
-            console.log(`Detected URL change from the current url - ${currentUrl} to the new url - ${newUrl}`);
-            currentUrl = newUrl;
-            initializeComponent();
-        }
-
-    });
-
-
-    // Configure the observer to watch for DOM changes
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true
-    });
 
     initializeComponent();
 
@@ -86,19 +62,31 @@ function bootstrap(appModuleRef) {
     console.timeEnd('bootstrap')
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+function loadBootstrap(){
+    if (hasBootstrapped) {
+        return;
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            bootstrapWebComponent();
+        });
+    } else {
+        //For lazily loaded cases. DOM is already loaded, bootstrap immediately.
         bootstrapWebComponent();
-    });
-} else {
-    //For lazily loaded cases. DOM is already loaded, bootstrap immediately.
-    bootstrapWebComponent();
+    }
 }
 
 function bootstrapWebComponent() {
+    if (hasBootstrapped) {
+        return;
+    }
+    
+    hasBootstrapped = true;
+    
     platformBrowserDynamic().bootstrapModule(AppModule).then((appModuleRef: NgModuleRef<AppModule>) => {
         bootstrap(appModuleRef);
-    }, err => {
-        console.log(err)
+    }).catch(err => {
+        console.error("Error bootstrapping application:", err);
     });
 }

@@ -1,40 +1,93 @@
-(function(appName) {
+
+let currentUrl = window.location.pathname;
+
+const observedElements = new Set<Element>(); 
+
+const observer = new MutationObserver((mutations) => {
+    let urlChanged = false;
+    const newUrl = window.location.pathname;
+
+    mutations.forEach((mutation) => {
+        // Check if URL has changed
+        if (newUrl !== currentUrl && !urlChanged) {
+            console.log(`Detected URL change from ${currentUrl} to ${newUrl}`);
+            currentUrl = newUrl;
+            urlChanged = true; 
+            initializeApp("{{appName}}");
+        }
+
+        mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                const element = node as HTMLElement;
+
+                if (element.tagName.toLowerCase() === 'wm-{{appName}}' && !observedElements.has(element)) {
+                    observedElements.add(element);
+                    initializeApp("{{appName}}");
+                }
+            }
+        });
+    });
+});
+
+observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    // attributes: true
+});
+
+
+function initializeApp(appName, retries = 0, maxRetries = 10) {
     wcAppName = appName;
 
-    (function(appComponentElement){
+    const appComponentElement = document.querySelector(`wm-${wcAppName}`);
+    if(appComponentElement){
         try {
             const wmAppClassElement = document.createElement('div');
             wmAppClassElement.classList.add('wm-app');
             if(!appComponentElement) {
-               console.error(`"The wm-${wcAppName} WebComponent element is not available in the DOM at the time of script loading`);
+                console.error(`"The wm-${wcAppName} WebComponent element is not available in the DOM at the time of script loading`);
             }
-            appComponentElement.parentNode.insertBefore(wmAppClassElement, appComponentElement);
-            wmAppClassElement.appendChild(appComponentElement);
+
+            if (!appComponentElement.parentElement?.classList.contains('wm-app')) {
+                appComponentElement.parentNode.insertBefore(wmAppClassElement, appComponentElement);
+                wmAppClassElement.appendChild(appComponentElement);
+            }
+
+            const mountStyle = (styleSheetUrl) => {
+                var head  = document.getElementsByTagName('head')[0];
+                var link  = document.createElement('link');
+                link.rel  = 'stylesheet';
+                link.type = 'text/css';
+                link.href = styleSheetUrl;
+                link.media = 'all';
+                head.appendChild(link);
+            }
+        
+            const mountStyles = () => {
+                let styles= ["wm-styles.css", "styles.css"];
+                styles.map(function(stylesheet) {
+                    //@ts-ignore
+                    let artifactsUrl = WM_APPS_META[appName].artifactsUrl;
+                    artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl)
+                    mountStyle(artifactsUrl + '/' + stylesheet);
+                });
+            }
+
+            mountStyles();
+            loadBootstrap();
+
         } catch(error) {
-            //console.log("---error---", error)
+            console.log("---error---", error)
         }
-    })(document.querySelector(`wm-${wcAppName}`))
-
-
-    const mountStyle = (styleSheetUrl) => {
-        var head  = document.getElementsByTagName('head')[0];
-        var link  = document.createElement('link');
-        link.rel  = 'stylesheet';
-        link.type = 'text/css';
-        link.href = styleSheetUrl;
-        link.media = 'all';
-        head.appendChild(link);
+    } else if (retries < maxRetries) {
+        setTimeout(function() {
+            console.log(`Retry ${retries + 1}: trying again to find the component`);
+            initializeApp("{{appName}}",retries + 1, maxRetries);
+        }, 100);
+    } else {
+        console.log(`Maximum retries reached. Unable to find WebComponent wm-${wcAppName}`);
+        return;
     }
+}
 
-    const mountStyles = () => {
-        let styles= ["wm-styles.css", "styles.css"];
-        styles.map(function(stylesheet) {
-            //@ts-ignore
-            let artifactsUrl = WM_APPS_META[appName].artifactsUrl;
-            artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl)
-            mountStyle(artifactsUrl + '/' + stylesheet);
-        });
-    }
-
-    mountStyles();
-})("{{appName}}")
+initializeApp("{{appName}}")
