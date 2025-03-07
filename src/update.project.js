@@ -330,9 +330,11 @@ const getAllPagesList = async (sourceDir) => {
 
 const defineWebComponents = async (sourceDir, appName) => {
 	let webComponents = `
-		const appComp \= createCustomElement(AppComponent, { injector: this.injector });
-		customElements.define(\'wm-${appName}\', appComp);
-	`;
+        if (!customElements.get('wm-${appName}')) {
+            const appComp = createCustomElement(AppComponent, { injector: this.injector });
+            customElements.define('wm-${appName}', appComp);
+        }
+    `;
 	let pagesList = [];//await getAppPagesList(sourceDir);
 	pagesList.forEach(pageName => {
 		let pName = pageName.toLowerCase();
