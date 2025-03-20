@@ -277,7 +277,11 @@ const updateMainTsFile = async(sourceDir) => {
 	const mountStyles = template({appName});
 
 	const mainTemplate = getHandlebarTemplate('main-ts');
-	const mainTsFileContent = mainTemplate({mountStyles});
+
+	const isPrefab = global.WMPropsObj.type === "PREFAB";
+	let pagesPathList = isPrefab? ['Main'] : await getAppPagesList(sourceDir);
+
+	const mainTsFileContent = mainTemplate({mountStyles, pagesPathList: JSON.stringify(pagesPathList), isPrefab: isPrefab});
 
 	try {
 		fs.writeFileSync(mainTs, mainTsFileContent);
@@ -430,9 +434,12 @@ const updateImports = async (sourceDir, data) => {
 	return `${contents}\n${data}`;
 }
 
-const updateInterceptor = (data, appName) => {
+const updateInterceptor = async (data, appName, sourceDir) => {
 	const template = getHandlebarTemplate('interceptor');
-	const contents = template({appName});
+	const isPrefab = global.WMPropsObj.type === 'PREFAB'
+	let pagesPathList = isPrefab ? ['Main'] : await getAppPagesList(sourceDir);
+
+	let contents = template({appName, pagesPathList : JSON.stringify(pagesPathList), isPrefab: isPrefab});
 	return `${contents}\n${data}`;
 }
 
@@ -518,7 +525,7 @@ const updateAppModule = async(sourceDir) => {
 	appModule = await updateModuleImports(sourceDir, appModule);
 	appModule = updateAppModuleProviders(appModule, appName);
 	appModule = await updateImports(sourceDir, appModule);
-	appModule = updateInterceptor(appModule, appName);
+	appModule = await updateInterceptor(appModule, appName, sourceDir);
 	await fs.writeFileSync(appModuleFile, appModule);
 
 	await updateAppModuleWithPrefabUrls(sourceDir, appName);

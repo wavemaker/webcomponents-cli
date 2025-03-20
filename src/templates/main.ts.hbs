@@ -31,7 +31,30 @@ function bootstrap(appModuleRef) {
             const appRef = appModuleRef.injector.get(ApplicationRef);
             let pageNameConfigured = appComponentElement.getAttribute("pageName");
             pageNameConfigured = pageNameConfigured ? pageNameConfigured : "Main";
-            router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
+
+            if ({{isPrefab}}) {
+                router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
+            } else {
+                const pathList = {{{pagesPathList}}}
+                const pathname = window.location.pathname.replace(/^\//, ''); 
+                const matchedPath = pathList.find(path => pathname.includes(path));
+
+                if (matchedPath) {
+                    const url = new URL(window.location.href);
+                    const queryParams = {};
+                    url.searchParams.forEach((value, key) => {
+                        queryParams[key] = value;
+                    });
+
+                    router.navigate([matchedPath], { 
+                        queryParams: Object.keys(queryParams).length ? queryParams : undefined, 
+                        skipLocationChange: true 
+                    });
+                } else {
+                    router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
+                }
+            }
+
             setTimeout(function() {
                 appRef.tick();
             }, 1000);
