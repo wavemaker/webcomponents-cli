@@ -20,7 +20,9 @@ npx @wavemaker/webcomponents-cli -s /path/to/prefab/project
 ## Accessing Properties, Methods, and Events
 
 All properties, methods, and events are attached to the web component's DOM element. To interact with the component, you must first select the element in the DOM.
-const webcomponent = .querySelector(‘webcomp-tagname’);
+```
+const webcomponent = .querySelector('webcomp-tagname');
+```
 
 ### Accessing Properties
 You can retrieve or modify properties using:
@@ -41,7 +43,7 @@ webcomponent.addEventListener('eventname', callBackMethod);
 ```
 
 ### Ensuring Web Component Initialization
-The web component may not be ready immediately. To ensure you access properties and methods only after initialization, listen for the 'init' event:
+The web component may not be ready immediately. To ensure you access properties, methods and events only after initialization, listen for the 'init' event:
 ```
 webcomponent.addEventListener('init', () => {
    console.log('Web component initialized');
