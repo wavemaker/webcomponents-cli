@@ -19,6 +19,12 @@ export class WMInterceptor implements HttpInterceptor {
         let servicedefsReq = request.url.indexOf("servicedefs") !== -1;
         let infoReq = request.url.indexOf("info") !== -1;
 
+        //to be removed added in case of api having "info" in the url
+        let algoinfo = (request.url.indexOf("algobook") !== -1) ;
+        if(algoinfo){
+            infoReq = false;
+        }
+
         //@ts-ignore
         let apiUrl = WM_APPS_META["{{appName}}"].apiUrl, artifactsUrl = WM_APPS_META["{{appName}}"].artifactsUrl;
         if (!redirectToWm) {
@@ -89,6 +95,22 @@ export class SkipLocationChangeService {
                     this.isNavigatingWithSkipLocationChange = true;
                     // Navigate with skipLocationChange
                     this.router.navigateByUrl(event.url, { skipLocationChange: true });
+
+                    if (!{{isPrefab}}) {
+                        const pathList = {{{pagesPathList}}}
+                        const fullUrl = window.location.href;
+                        const pathname = window.location.pathname;
+                        const matchedPath = pathList.find(path => pathname.includes(path));
+
+                        if (matchedPath) {
+                            const index = fullUrl.indexOf(matchedPath);
+                            const beforePath = fullUrl.substring(0, index);
+                            window.history.pushState({}, '', `${beforePath+event.url.substring(1)}`);
+                        } else {
+                            let newUrl = window.location.href.replace(/\/$/, '') + '/' + event.url.replace(/^\//, '');
+                            window.history.pushState({}, '', newUrl);
+                        }
+                    }
                 } else {
                     // Reset the flag after the navigation completes
                     this.isNavigatingWithSkipLocationChange = false;
