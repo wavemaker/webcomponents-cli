@@ -41,7 +41,7 @@ const {
 	getPagesDir,
 	getServiceDefsDir,
 	getWCAppDir, getWCDistDir, getWCZipFile, getTargetDir, getUIResourcesDir, getPagesConfigJson, getPartialsDir,
-	copyDirWithExclusionsSync, getSrcDir, isPrefabProject
+	copyDirWithExclusionsSync, getSrcDir, isPrefabProject, isPrismProject
 } = require('./utils');
 
 const { getHandlebarTemplate, safeString } = require('./template.helpers');
@@ -75,7 +75,8 @@ const generateNgCode = async (sourceDir) => {
 
 	console.log('Generating the angular App...');
 	console.log("API-Url - ", apiUrl, " - CDN-Url - ", deployUrl);
-	await generateCodegenAngularApp(sourceDir, targetDir, deployUrl, false, codegenPath, false, false, apiUrl);
+	let additionalArgs = !isPrismProject() ? {} : { buildType: 'angular', 'generateOverrideCSS': true, 'runtimeUIVersion': global.appRuntimeVersion };
+	await generateCodegenAngularApp(sourceDir, targetDir, deployUrl, false, codegenPath, false, false, apiUrl, additionalArgs);
 	console.log('Angular app generated !');
 	// await execCommand(`cd ${codegenPath} && node ${codegenCli} -s ${sourceDir} -t ${targetDir} --codegenPath=${codegenPath}/`);
 }
@@ -138,6 +139,9 @@ const updatePackageJson = async(sourceDir) => {
 		devDependenciesConfig["concat"] = "^1.0.3";
 	}
 
+	packageJson["dependencies"]["@wavemaker/custom-widgets-m3"] = global.appRuntimeVersion;
+	packageJson["dependencies"]["@wavemaker/foundation-css"] = global.appRuntimeVersion;
+
 	await writeFile(packageJsonFile, JSON.stringify(packageJson, null, 4));
 };
 
@@ -181,8 +185,14 @@ const buildApp = async sourceDir => {
 const removeScriptsLazyEntries = options =>
 	options.map(op => (typeof op === "object" ? op["input"] : op));
 
-const removeStylesLazyEntries = options =>
-	options.map(op => (typeof op === "object" && op["input"].indexOf("themes") !== -1 ? op["input"] : op));
+const removeStylesLazyEntries = options => {
+	let extractedStyles = options.map(op =>
+		(typeof op === "object" && op["input"] ? op["input"] : op)
+	);
+	// Remove "src/assets/print.css"
+	extractedStyles = extractedStyles.filter(style => style !== "src/assets/print.css");
+	return extractedStyles;
+}
 
 const removeCordovaPlugins = (packageJson) => {
 	const dependenciesConfig = packageJson['dependencies'];
@@ -201,7 +211,7 @@ const updateAngularJson = async(sourceDir) => {
 
 	buildOptions["outputPath"] = 'dist/ng-bundle';
 	buildOptions["index"]["output"] = '../index.html';
-	buildOptions["scripts"] = removeScriptsLazyEntries(buildOptions["scripts"]);
+	// buildOptions["scripts"] = removeScriptsLazyEntries(buildOptions["scripts"]);
 	buildOptions["styles"] = removeStylesLazyEntries(buildOptions["styles"]);
 	buildOptions["customWebpackConfig"]["path"] = `./${CUSTOM_WEBPACK_CONFIG_FILE}`;
 	delete buildOptions["indexTransform"];
@@ -257,9 +267,7 @@ const updateAngularJson = async(sourceDir) => {
 	];
 	buildOptions["assets"].push(...otherAssets);
 
-	build["configurations"]["production"]["vendorChunk"] = true;
 	build["configurations"]["production"]["outputHashing"] = "none";
-	build["configurations"]["development"]["vendorChunk"] = true;
 	//keep this till it stabilises. if prod required pass it as a param to build script (--c=production)
 	build["defaultConfiguration"] = "development";
 
@@ -557,7 +565,7 @@ const updatePrefabScriptFile = async(sourceDir) => {
 
 	fs.writeFileSync(filePath, fileContent, 'utf8');
 	console.log("prefab comp ts file updated");
-} 
+}
 
 const updateMainFile = async(sourceDir) => {
 	let markup, pageName = "Main", wmProjectProperties = getWMPropsObject(sourceDir), prefabName = wmProjectProperties.name;

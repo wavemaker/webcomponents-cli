@@ -50,20 +50,57 @@
 		});
 	}
 
-	function initializeWebComponent() {
-		window.WM_APPS_META = window.WM_APPS_META || {};
-		window.WM_APPS_META[appName] = getWebComponentConfig();
-		let baseUrl = window.WM_APPS_META[`${appName}`]['artifactsUrl'];
-		let wmElementScriptUrl  = `${baseUrl}/wm-element.js`;
-		let webComponentScriptUrl  = `${baseUrl}/wm-${appName}.js`;
+    window.WM_APPS_META = window.WM_APPS_META || {};
+    window.WM_APPS_META[appName] = getWebComponentConfig();
+    let baseUrl = window.WM_APPS_META[`${appName}`]['artifactsUrl'];
 
-		// Load scripts sequentially
-		loadScript(wmElementScriptUrl, false)
-			.then(() => loadScript(webComponentScriptUrl, true))
-			.catch(error => {
-				console.error('Failed to load WebComponent scripts:', error);
-			});
-	}
+    (function() {
+      const loadScript = (src) => {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = `${baseUrl}${src}`;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      };
 
-	initializeWebComponent();
+        const mountStyle = (styleSheetUrl) => {
+            var head = document.getElementsByTagName('head')[0];
+            //@ts-ignore
+            if ([...head.querySelectorAll('link[rel="stylesheet"]')].some(link => link.href && link.href.includes(styleSheetUrl))) {
+                //already present. just ignore
+                return;
+            }
+            var link  = document.createElement('link');
+            link.rel  = 'stylesheet';
+            link.type = 'text/css';
+            link.href = styleSheetUrl;
+            link.media = 'all';
+            head.appendChild(link);
+        }
+
+      const loadAngularAppDeps = async () => {
+        try {
+          await loadScript('scripts.js');
+          await loadScript('bootstrap.main.js');
+        } catch (error) {
+          console.error('Failed to load Angular application:', error);
+        }
+      };
+
+        const mountStyles = () => {
+            let styles= ["styles.css"];
+            styles.map(function(stylesheet) {
+                //@ts-ignore
+                let artifactsUrl = WM_APPS_META[appName].artifactsUrl;
+                artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl)
+                mountStyle(artifactsUrl + '/' + stylesheet);
+            });
+        }
+
+        mountStyles();
+        loadAngularAppDeps();
+	 })()
+
 })('{{appName}}');

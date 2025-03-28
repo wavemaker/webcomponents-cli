@@ -1,3 +1,7 @@
+import 'zone.js'; // Required for Angular
+import 'core-js/stable'; // Polyfills for ES6+ features
+import 'regenerator-runtime/runtime'; // Polyfill for async/await
+
 import { ApplicationRef, enableProdMode, NgModuleRef } from '@angular/core';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 
@@ -36,7 +40,7 @@ function bootstrap(appModuleRef) {
                 router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
             } else {
                 const pathList = {{{pagesPathList}}}
-                const pathname = window.location.pathname.replace(/^\//, ''); 
+                const pathname = window.location.pathname.replace(/^\//, '');
                 const matchedPath = pathList.find(path => pathname.includes(path));
 
                 if (matchedPath) {
@@ -46,9 +50,9 @@ function bootstrap(appModuleRef) {
                         queryParams[key] = value;
                     });
 
-                    router.navigate([matchedPath], { 
-                        queryParams: Object.keys(queryParams).length ? queryParams : undefined, 
-                        skipLocationChange: true 
+                    router.navigate([matchedPath], {
+                        queryParams: Object.keys(queryParams).length ? queryParams : undefined,
+                        skipLocationChange: true
                     });
                 } else {
                     router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
@@ -58,7 +62,7 @@ function bootstrap(appModuleRef) {
             setTimeout(function() {
                 appRef.tick();
             }, 1000);
-        } 
+        }
     }
 
     initializeComponent();
@@ -104,9 +108,9 @@ function bootstrapWebComponent() {
     if (hasBootstrapped) {
         return;
     }
-    
+
     hasBootstrapped = true;
-    
+
     platformBrowserDynamic().bootstrapModule(AppModule).then((appModuleRef: NgModuleRef<AppModule>) => {
         bootstrap(appModuleRef);
     }).catch(err => {
