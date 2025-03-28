@@ -1,11 +1,31 @@
 const path = require(`path`);
+const CompressionPlugin = require(`compression-webpack-plugin`);
 
 module.exports = {
+    entry: './src/main.ts',
     output: {
         uniqueName: '{{{appName}}}',
         scriptType: 'text/javascript',
         library: { type: 'var', name: '{{{appName}}}' },
+        filename: 'bootstrap.[name].js', // Single bootstrap file
+        chunkFilename: '[name].js',
     },
+    optimization: {
+        runtimeChunk: false, //Merge runtime.js into main.js
+        splitChunks: false, //Disable chunk splitting
+      },
+    plugins:[
+        new CompressionPlugin({
+            test: /\.(js|css|html|svg|txt|eot|otf|ttf|gif)$/,
+            filename: "[name][ext].gz",
+            algorithm: "gzip"
+        }),
+        new CompressionPlugin({
+            test: /\.(js|css|html|svg|txt|eot|otf|ttf|gif)$/,
+            filename: "[name][ext].br",
+            algorithm: "brotliCompress"
+        }),
+    ],
     module: {
         rules: [
             {
@@ -16,7 +36,7 @@ module.exports = {
                         maxSize: 80 * 1024 // 80kb
                     }
                 }
-            }
-        ]
+            },
+        ],
     }
 }

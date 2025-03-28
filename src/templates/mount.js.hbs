@@ -1,7 +1,7 @@
 
 let currentUrl = window.location.pathname;
 
-const observedElements = new Set<Element>(); 
+const observedElements = new Set<Element>();
 
 const observer = new MutationObserver((mutations) => {
     let urlChanged = false;
@@ -12,7 +12,7 @@ const observer = new MutationObserver((mutations) => {
         if (newUrl !== currentUrl && !urlChanged) {
             console.log(`Detected URL change from ${currentUrl} to ${newUrl}`);
             currentUrl = newUrl;
-            urlChanged = true; 
+            urlChanged = true;
             initializeApp("{{appName}}");
         }
 
@@ -53,31 +53,9 @@ function initializeApp(appName, retries = 0, maxRetries = 10) {
                 wmAppClassElement.appendChild(appComponentElement);
             }
 
-            const mountStyle = (styleSheetUrl) => {
-                var head  = document.getElementsByTagName('head')[0];
-                var link  = document.createElement('link');
-                link.rel  = 'stylesheet';
-                link.type = 'text/css';
-                link.href = styleSheetUrl;
-                link.media = 'all';
-                head.appendChild(link);
-            }
-        
-            const mountStyles = () => {
-                let styles= ["wm-styles.css", "styles.css"];
-                styles.map(function(stylesheet) {
-                    //@ts-ignore
-                    let artifactsUrl = WM_APPS_META[appName].artifactsUrl;
-                    artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl)
-                    mountStyle(artifactsUrl + '/' + stylesheet);
-                });
-            }
-
-            mountStyles();
             loadBootstrap();
-
         } catch(error) {
-            console.log("---error---", error)
+            console.log("Something went wrong", error)
         }
     } else if (retries < maxRetries) {
         setTimeout(function() {

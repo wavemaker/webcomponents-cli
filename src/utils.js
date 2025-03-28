@@ -54,6 +54,7 @@ const getServiceDefsDir = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/
 const getNgBundle = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist/ng-bundle`);
 const getComponentName = name => `${upperFirst(name)}Component`;
 const getServicesDir = sourceDir => path.resolve(`${sourceDir}/services/securityService/designtime`);
+const isPrismProject = () => global.WMPropsObj.template === 'PRISM';
 
 global.WMPropsObj = {};
 
@@ -332,5 +333,6 @@ module.exports = {
 	updateGlobalProps,
 	generateDocs,
 	isPrefabProject,
-	getServicesDir
+	getServicesDir,
+	isPrismProject
 }

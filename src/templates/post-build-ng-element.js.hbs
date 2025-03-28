@@ -5,16 +5,6 @@ const path = require('path');
 const appName = process.argv[2].split("=")[1];
 
 (async function postBuild() {
-    const files = [
-        './dist/ng-bundle/runtime.js',
-        './dist/ng-bundle/polyfills.js',
-        './dist/ng-bundle/scripts.js',
-        './dist/ng-bundle/vendor.js'
-    ];
-
-    await concat(files, './dist/ng-bundle/wm-element.js');
-    fs.renameSync(`./dist/ng-bundle/main.js`, `./dist/ng-bundle/wm-${appName}.js`);
-
     const deleteUnusedLocaleFiles = async () => {
         let localeDirs = ['./dist/ng-bundle/locales/angular/global', './dist/ng-bundle/locales/fullcalendar', './dist/ng-bundle/locales/moment'];
         let allowedLocales = ["en-gb.js", "en.js"]
