@@ -35,7 +35,7 @@ const observer = new MutationObserver((mutations) => {
                     }
                     if(isRelativeUrl) {
                         //@ts-ignore
-                        const componentBaseUrl = WM_APPS_META[wcAppName].artifactsUrl;
+                        const componentBaseUrl = !currentSrc.startsWith("services") ? WM_APPS_META[wcAppName].artifactsUrl : WM_APPS_META[wcAppName].apiUrl;
                         currentSrc = currentSrc.replace("app/prefabs/", 'resources/');
                         const resolvedSrc = new URL(currentSrc, componentBaseUrl).href;
 
