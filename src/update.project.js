@@ -211,7 +211,7 @@ const updateAngularJson = async(sourceDir) => {
 
 	buildOptions["outputPath"] = 'dist/ng-bundle';
 	buildOptions["index"]["output"] = '../index.html';
-	// buildOptions["scripts"] = removeScriptsLazyEntries(buildOptions["scripts"]);
+	buildOptions["scripts"] = removeScriptsLazyEntries(buildOptions["scripts"]);
 	buildOptions["styles"] = removeStylesLazyEntries(buildOptions["styles"]);
 	buildOptions["customWebpackConfig"]["path"] = `./${CUSTOM_WEBPACK_CONFIG_FILE}`;
 	delete buildOptions["indexTransform"];
