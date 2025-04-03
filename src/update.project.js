@@ -282,7 +282,7 @@ const updateMainTsFile = async(sourceDir) => {
 	const mainTs = getMainTs(sourceDir);
 
 	const template = getHandlebarTemplate('mount-files');
-	const mountStyles = template({appName});
+	const mountStyles = template({appName, isWebApp: global.WMPropsObj.type !== "PREFAB"});
 
 	const mainTemplate = getHandlebarTemplate('main-ts');
 

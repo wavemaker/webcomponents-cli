@@ -16,6 +16,44 @@ const observer = new MutationObserver((mutations) => {
             initializeApp("{{appName}}");
         }
 
+        if({{isWebApp}}){
+            if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+                const imgElement = mutation.target ;
+                //@ts-ignore
+                let currentSrc = imgElement.getAttribute('src');
+                let isRelativeUrl = false;
+                if (currentSrc) {
+                    try {
+                        const url = new URL(currentSrc);
+                        if (url.protocol === 'http:' || url.protocol === 'https:') {
+                            // Skip updating if it's an absolute URL
+                            return;
+                        }
+                    } catch (e) {
+                        // If URL constructor throws, it means currentSrc is relative
+                        isRelativeUrl = true;
+                    }
+                    if(isRelativeUrl) {
+                        //@ts-ignore
+                        const componentBaseUrl = WM_APPS_META[wcAppName].artifactsUrl;
+                        currentSrc = currentSrc.replace("app/prefabs/", 'resources/');
+                        const resolvedSrc = new URL(currentSrc, componentBaseUrl).href;
+
+                        // Avoid re-triggering observer by temporarily disconnecting it
+                        observer.disconnect();
+                        //@ts-ignore
+                        imgElement.setAttribute('src', resolvedSrc);
+                        // Reconnect the observer after updating the src
+                        observer.observe(document.body, {
+                            childList: true,
+                            subtree: true,
+                            attributes: true
+                        });
+                    }
+                }
+            }
+        }
+
         mutation.addedNodes.forEach((node) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
                 const element = node as HTMLElement;
@@ -32,7 +70,7 @@ const observer = new MutationObserver((mutations) => {
 observer.observe(document.body, {
     childList: true,
     subtree: true,
-    // attributes: true
+    attributes: true
 });
 
 
