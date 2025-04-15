@@ -287,9 +287,8 @@ const updateMainTsFile = async(sourceDir) => {
 	const mainTemplate = getHandlebarTemplate('main-ts');
 
 	const isPrefab = global.WMPropsObj.type === "PREFAB";
-	let pagesPathList = isPrefab? ['Main'] : await getAppPagesList(sourceDir);
 
-	const mainTsFileContent = mainTemplate({mountStyles, pagesPathList: JSON.stringify(pagesPathList), isPrefab: isPrefab});
+	const mainTsFileContent = mainTemplate({mountStyles, isPrefab: isPrefab});
 
 	try {
 		fs.writeFileSync(mainTs, mainTsFileContent);
@@ -361,8 +360,20 @@ const defineWebComponents = async (sourceDir, appName) => {
 }
 
 const updateModuleImports = async (sourceDir, appModule) => {
-	let moduleImports = `WM_MODULES_FOR_ROOT,
+	const isPrefab = global.WMPropsObj.type === "PREFAB";
+	let moduleImports;
+	if(!isPrefab){
+		appModule = appModule.replace(/^\s*RouterModule,?\s*$/gm, '        // RouterModule,');
+    	appModule = appModule.replace(/^\s*routerModule,?\s*$/gm, '        // routerModule,');
+
+		moduleImports = `WM_MODULES_FOR_ROOT,
+        AppCodeGenModule,
+		RouterModule.forRoot(routes), 	`;
+	} else {
+		moduleImports = `WM_MODULES_FOR_ROOT,
         AppCodeGenModule,`;
+	}
+		
 	let pagesList = [];//await getAppPagesList(sourceDir);
 	pagesList.forEach(pageName => {
 		pageName = pageName[0].toUpperCase() + pageName.slice(1);
@@ -389,7 +400,9 @@ const updateModuleClass = async (sourceDir, appModule, appName) => {
 	return updatedModule;
 };
 
-const updateAppModuleProviders = (data, appName) => {
+const updateAppModuleProviders = async (data, appName, sourceDir) => {
+	const isPrefab = global.WMPropsObj.type === "PREFAB";
+	let pagesPathList = isPrefab? ['Main'] : await getAppPagesList(sourceDir);
 	let provRegex = /providers(\s)*:(\s)*\[/;
 	let sInterceptor = `providers: [\n
   {
@@ -413,7 +426,38 @@ const updateAppModuleProviders = (data, appName) => {
 		useFactory: initializeSkipLocationChange,
 		deps: [SkipLocationChangeService],
 		multi: true,
-  },\n`;
+  },
+  {
+		provide: APP_BASE_HREF,
+		useFactory: () => {
+			if(${isPrefab}){
+				return;
+			}
+			const fullUrl = window.location.href;
+			const pathList = ${JSON.stringify(pagesPathList)};
+			const url = new URL(fullUrl);
+
+			const pathname = url.pathname; 
+			const matchedPath = pathList.find(path => pathname.includes(path));
+			let baseHref;
+			if(matchedPath){
+				const index = pathname.indexOf(matchedPath);
+				const beforePath = pathname.substring(0, index); 
+
+				baseHref = beforePath.endsWith('/') 
+									? beforePath.slice(0, -1) 
+									: beforePath;
+			}else {
+				baseHref = pathname.endsWith('/')
+									? pathname.slice(0, -1)
+									: pathname 
+			}
+
+			console.log("baseHref=", baseHref);
+
+			return baseHref;
+  		}
+   },\n`;
 	data = data.replace(provRegex, sInterceptor);
 	return data;
 };
@@ -445,9 +489,8 @@ const updateImports = async (sourceDir, data) => {
 const updateInterceptor = async (data, appName, sourceDir) => {
 	const template = getHandlebarTemplate('interceptor');
 	const isPrefab = global.WMPropsObj.type === 'PREFAB'
-	let pagesPathList = isPrefab ? ['Main'] : await getAppPagesList(sourceDir);
 
-	let contents = template({appName, pagesPathList : JSON.stringify(pagesPathList), isPrefab: isPrefab});
+	let contents = template({appName, isPrefab: isPrefab});
 	return `${contents}\n${data}`;
 }
 
@@ -531,7 +574,7 @@ const updateAppModule = async(sourceDir) => {
 	appName = appName.toLowerCase();
 	appModule = await updateModuleClass(sourceDir, appModule, appName);
 	appModule = await updateModuleImports(sourceDir, appModule);
-	appModule = updateAppModuleProviders(appModule, appName);
+	appModule = await updateAppModuleProviders(appModule, appName, sourceDir);
 	appModule = await updateImports(sourceDir, appModule);
 	appModule = await updateInterceptor(appModule, appName, sourceDir);
 	await fs.writeFileSync(appModuleFile, appModule);
