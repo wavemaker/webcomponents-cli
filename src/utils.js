@@ -40,7 +40,7 @@ const getAngularJson = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/angu
 const getThemesConfigJson = sourceDir => path.resolve(`${sourceDir}/src/main/webapp/themes/themes-config.json`);
 const getMainTs = sourceDir => path.resolve(`${getSrcDir(sourceDir)}/main.ts`);
 const getMainComponentTemplate = sourceDir => path.resolve(`${getPagesDir(sourceDir)}/Main/Main.component.html`);
-const getAppModule = sourceDir => path.resolve(`${getAppDir(sourceDir)}/app.module.ts`);
+const getAppConfig = sourceDir => path.resolve(`${getAppDir(sourceDir)}/app.config.ts`);
 const getResourceFilesDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/resources/files`);
 const getWMProjectPropsFile = sourceDir => path.resolve(`${getAppDir(sourceDir)}/wm-project-properties.ts`);
 const getPOMXml = sourceDir => node_path.resolve(`${sourceDir}/pom.xml`);
@@ -292,7 +292,7 @@ module.exports = {
 	execCommand,
 	readDir,
 	stat,
-	getAppModule,
+	getAppConfig,
 	getMainComponentTemplate,
 	getMainTs,
 	getPrefabsDir,

@@ -34,7 +34,7 @@ export class WMInterceptor implements HttpInterceptor {
                 let reqUrl = artifactsUrl+'/'+fileName;
                 if(fileName.indexOf("servicedefs") !== -1) {
                     fileName = "app-servicedefs.json";
-                    let prefabNameRegex = request.url.match(/services\/prefabs\/([^/]+)\/servicedefs/);
+                    let prefabNameRegex = request.url.match(/servicedefs\/([^/]+)-prefab-servicedefs\.json$/);
                     if(prefabNameRegex) {
                         fileName = "app-prefabs-"+prefabNameRegex[1]+"-servicedefs.json"
                         //fileName = "app-prefabs-servicedefs.json"
@@ -94,23 +94,7 @@ export class SkipLocationChangeService {
                     // Set the flag to prevent infinite loops
                     this.isNavigatingWithSkipLocationChange = true;
                     // Navigate with skipLocationChange
-                    this.router.navigateByUrl(event.url, { skipLocationChange: true });
-
-                    if (!{{isPrefab}}) {
-                        const pathList = {{{pagesPathList}}}
-                        const fullUrl = window.location.href;
-                        const pathname = window.location.pathname;
-                        const matchedPath = pathList.find(path => pathname.includes(path));
-
-                        if (matchedPath) {
-                            const index = fullUrl.indexOf(matchedPath);
-                            const beforePath = fullUrl.substring(0, index);
-                            window.history.pushState({}, '', `${beforePath+event.url.substring(1)}`);
-                        } else {
-                            let newUrl = window.location.href.replace(/\/$/, '') + '/' + event.url.replace(/^\//, '');
-                            window.history.pushState({}, '', newUrl);
-                        }
-                    }
+                    this.router.navigateByUrl(event.url, { skipLocationChange: {{isPrefab}} }); 
                 } else {
                     // Reset the flag after the navigation completes
                     this.isNavigatingWithSkipLocationChange = false;
