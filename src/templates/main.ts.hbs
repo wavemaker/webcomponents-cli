@@ -40,14 +40,10 @@ function bootstrap(appModuleRef, baseHref) {
             if({{isPrefab}}){
                 router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
             } else {
-                console.log("-----------baseHref-----------", baseHref);
                 const currentPath = window.location.pathname + window.location.search;
-                console.log("currentPath", currentPath);
                 const relativePath = currentPath.startsWith(baseHref)
                                         ? currentPath.slice(baseHref.length)
                                         : currentPath;
-
-                console.log("relativePath",relativePath);
 
                 if(!relativePath){
                     router.navigate(['/'+ pageNameConfigured]);

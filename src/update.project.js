@@ -363,8 +363,8 @@ const updateModuleImports = async (sourceDir, appModule) => {
 	const isPrefab = global.WMPropsObj.type === "PREFAB";
 	let moduleImports;
 	if(!isPrefab){
-		appModule = appModule.replace(/^\s*RouterModule,?\s*$/gm, '        // RouterModule,');
-    	appModule = appModule.replace(/^\s*routerModule,?\s*$/gm, '        // routerModule,');
+		appModule = appModule.replace(/^\s*RouterModule,?\s*$/gm, '');
+    	appModule = appModule.replace(/^\s*routerModule,?\s*$/gm, '');
 
 		moduleImports = `WM_MODULES_FOR_ROOT,
         AppCodeGenModule,
@@ -452,9 +452,6 @@ const updateAppModuleProviders = async (data, appName, sourceDir) => {
 									? pathname.slice(0, -1)
 									: pathname 
 			}
-
-			console.log("baseHref=", baseHref);
-
 			return baseHref;
   		}
    },\n`;
