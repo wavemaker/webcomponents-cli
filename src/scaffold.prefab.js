@@ -9,7 +9,8 @@ const {
 	readFileSync,
 	getSrcWebappDir,
 	updateGlobalProps, getPrefabsDir, getSrcDir, getSrcAppDir, getTargetDir,
-	getServicesDir
+	getServicesDir,
+	getUIResourcesDir
 } = require("./utils");
 const xml2js = require('xml2js');
 const {getHandlebarTemplate} = require("./template.helpers");
@@ -120,6 +121,22 @@ async function updateWMProperties(filePath, key, changeProjectType) {
 	}
 }
 
+async function updateWMPropertiesJSFile(sourceDir){
+	const filePath = node_path.join(getUIResourcesDir(sourceDir), 'wmProperties.js');
+
+	try {
+		let data = fs.readFileSync(filePath, 'utf8');
+
+		let modifiedData = data.replace(/"type"\s*:\s*".*?"/, '"type": "APPLICATION"');
+
+		fs.writeFileSync(filePath, modifiedData, 'utf8');
+
+	} catch (err) {
+		console.error('Error updateWMPropertiesJSFile', err);
+	}
+
+}
+
 const deleteKeyFromXML = (xmlData, key) => {
 	const entries = xmlData.properties.entry;
 	if (Array.isArray(entries)) {
@@ -214,6 +231,7 @@ const scaffoldPrefabProject = async(sourceDir) => {
 	await backUpWMProsFile(sourceDir);
 
 	await updateWMProperties(sourceDir, "studioPrefabUpgradeVersion", true);
+	await updateWMPropertiesJSFile(sourceDir);
 	//this is required as we have changed the prefab to web application
 	await updateGlobalProps(sourceDir);
 	await updateWMProperties(`${getSrcWebappDir(sourceDir)}/WEB-INF/prefabs/${global.WMPropsObj.name}`, "studioProjectUpgradeVersion", false);

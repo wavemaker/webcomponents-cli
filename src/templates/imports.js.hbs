@@ -1,11 +1,13 @@
 import { Injector, Injectable, DoBootstrap, InjectionToken } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
-import { HttpInterceptor, HttpRequest, HttpResponse, HttpHandler, HttpEvent, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { HttpInterceptor, HttpRequest, HttpResponse, HttpHandler, HttpEvent, HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import  { createCustomElement } from '@angular/elements';
 {{{componentImports}}}
 import { APP_INITIALIZER } from '@angular/core';
+import { AppCodeGenModule } from './app-codegen.module';
+import { _WM_APP_PROJECT } from '@wm/core';
 
 export const PREFAB_NAME = new InjectionToken<string>('Prefab Name');
 
@@ -17,11 +19,12 @@ export function initMetadata(appName) {
         }catch(e) {
             //no prefabs present. just ignore the error
         }
+        _WM_APP_PROJECT.isPreview = false;
         //@ts-ignore
-        let baseAPIUrl = WM_APPS_META[appName].apiUrl;
+        let baseAPIUrl =  _WM_APP_PROJECT.apiUrl = WM_APPS_META[appName].apiUrl;
         //@ts-ignore
         let artifactsUrl = WM_APPS_META[appName].artifactsUrl;
         //@ts-ignore
-        __webpack_require__.p = __webpack_public_path__ = artifactsUrl || '/ng-bundle/';
+        __webpack_require__.p = __webpack_public_path__ = _WM_APP_PROJECT.cdnUrl = artifactsUrl || '/ng-bundle/';
     };
 }

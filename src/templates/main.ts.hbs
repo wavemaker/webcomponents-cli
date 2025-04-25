@@ -7,10 +7,14 @@ import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 
 import { Router } from '@angular/router';
 
-import { AppModule } from './app/app.module';
 import { environment } from './environments/environment';
 
 import initWmProjectProperties from './app/wm-project-properties';
+import { appConfig } from './app/app.config';
+import { createApplication } from '@angular/platform-browser';
+import { createCustomElement } from '@angular/elements';
+import { AppComponent } from '@wm/runtime/base';
+import { APP_BASE_HREF } from '@angular/common';
 
 initWmProjectProperties();
 
@@ -24,7 +28,7 @@ let hasBootstrapped = false;
 
 {{{mountStyles}}}
 
-function bootstrap(appModuleRef) {
+function bootstrap(appModuleRef, baseHref) {
     //default page to be rendered if nothing passed
     const router = appModuleRef.injector.get(Router);
 
@@ -39,24 +43,26 @@ function bootstrap(appModuleRef) {
             if ({{isPrefab}}) {
                 router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
             } else {
-                const pathList = {{{pagesPathList}}}
-                const pathname = window.location.pathname.replace(/^\//, '');
-                const matchedPath = pathList.find(path => pathname.includes(path));
+                const currentPath = window.location.pathname + window.location.search;
+                const relativePath = currentPath.startsWith(baseHref)
+                                        ? currentPath.slice(baseHref.length)
+                                        : currentPath;
 
-                if (matchedPath) {
-                    const url = new URL(window.location.href);
-                    const queryParams = {};
-                    url.searchParams.forEach((value, key) => {
-                        queryParams[key] = value;
-                    });
+                if(!relativePath){
+                    router.navigate(['/'+ pageNameConfigured]);   
+                }else {
+                    const [path, queryString] = relativePath.split('?');
+                    const queryParams: any = {};
 
-                    router.navigate([matchedPath], {
-                        queryParams: Object.keys(queryParams).length ? queryParams : undefined,
-                        skipLocationChange: true
-                    });
-                } else {
-                    router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
-                }
+                    if (queryString) {
+                        queryString.split('&').forEach(pair => {
+                            const [key, value] = pair.split('=');
+                            queryParams[key] = value;   
+                        });
+                    }
+
+                    router.navigate([path], { queryParams });
+                }             
             }
 
             setTimeout(function() {
@@ -110,10 +116,7 @@ function bootstrapWebComponent() {
     }
 
     hasBootstrapped = true;
-
-    platformBrowserDynamic().bootstrapModule(AppModule).then((appModuleRef: NgModuleRef<AppModule>) => {
-        bootstrap(appModuleRef);
-    }).catch(err => {
-        console.error("Error bootstrapping application:", err);
-    });
+    
+    console.log("-----------bootstraping webcomponent-------------");
+    {{{webComponents}}}
 }
