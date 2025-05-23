@@ -2,7 +2,7 @@ import 'zone.js'; // Required for Angular
 import 'core-js/stable'; // Polyfills for ES6+ features
 import 'regenerator-runtime/runtime'; // Polyfill for async/await
 
-import { ApplicationRef, enableProdMode, NgModuleRef } from '@angular/core';
+import { ApplicationRef, enableProdMode, NgModuleRef, NgZone } from '@angular/core';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 
 import { Router } from '@angular/router';
@@ -25,12 +25,16 @@ if (environment.production) {
 let wcAppName = '';
 
 let hasBootstrapped = false;
+let webCompPage;
+let router;
+let zone;
+let baseHref;
 
 {{{mountStyles}}}
 
 function bootstrap(appModuleRef, baseHref) {
     //default page to be rendered if nothing passed
-    const router = appModuleRef.injector.get(Router);
+    router = appModuleRef.injector.get(Router);
 
     function initializeComponent() {
         let appComponentElement = document.querySelector(`wm-${wcAppName}`);
@@ -40,6 +44,7 @@ function bootstrap(appModuleRef, baseHref) {
             let pageNameConfigured = appComponentElement.getAttribute("pageName");
             pageNameConfigured = pageNameConfigured ? pageNameConfigured : "Main";
 
+            //renders required page on given url
             if ({{isPrefab}}) {
                 router.navigate(['/'+ pageNameConfigured], { skipLocationChange: true });
             } else {
@@ -49,9 +54,11 @@ function bootstrap(appModuleRef, baseHref) {
                                         : currentPath;
 
                 if(!relativePath){
+                    window.history.replaceState(null, '', `${baseHref}/${pageNameConfigured}`);
                     router.navigate(['/'+ pageNameConfigured]);   
                 }else {
-                    const [path, queryString] = relativePath.split('?');
+                    const decodedURL = decodeURIComponent(relativePath);
+                    const [path, queryString] = decodedURL.split('?');
                     const queryParams: any = {};
 
                     if (queryString) {
@@ -62,7 +69,80 @@ function bootstrap(appModuleRef, baseHref) {
                     }
 
                     router.navigate([path], { queryParams });
-                }             
+                }
+
+                //pushState, replaceState overrided to control routing when user triggered in parent app
+                function overrideHistoryMethod(methodName: 'pushState' | 'replaceState') {
+                    const originalMethod = history[methodName];
+
+                    history[methodName] = function (state) {
+                        if (state?.customIntercepted) {
+                            originalMethod.apply(this, arguments);
+                            return;
+                        }
+
+                        const currRoute = arguments[2];
+
+                        if (!currRoute.startsWith(baseHref)) {
+                            originalMethod.apply(this, arguments);
+                            return;
+                        }
+
+                        if (!webCompPage) {
+                            originalMethod.apply(this, arguments);
+                            return;
+                        }
+
+                        const relativePath = currRoute.slice(baseHref.length);
+
+                        if (relativePath) {
+                            const decodedURL = decodeURIComponent(relativePath);
+                            const [path, queryString] = decodedURL.split('?');
+                            const queryParams: any = {};
+
+                            if (queryString) {
+                                queryString.split('&').forEach(pair => {
+                                    const [key, value] = pair.split('=');
+                                    queryParams[key] = value;
+                                });
+                            }
+
+                            zone.run(() => {
+                                router.navigate([path], { queryParams });
+                            });
+                        } else {
+                            zone.run(() => {
+                                router.navigate(['/' + pageNameConfigured]);
+                            });
+                        }
+                    };
+                }
+
+                overrideHistoryMethod('pushState');
+                overrideHistoryMethod('replaceState');
+
+                //popstate triggered when navigated back/forward
+                window.addEventListener('popstate', (event)=>{
+                    const currentPath = window.location.pathname + window.location.search;
+                    const relativePath = currentPath.startsWith(baseHref)
+                                            ? currentPath.slice(baseHref.length)
+                                            : null;
+
+                    if(relativePath){
+                        const decodedURL = decodeURIComponent(relativePath);
+                        const [path, queryString] = decodedURL.split('?');
+                        const queryParams: any = {};
+
+                        if (queryString) {
+                            queryString.split('&').forEach(pair => {
+                                const [key, value] = pair.split('=');
+                                queryParams[decodeURIComponent(key)] = decodeURIComponent(value);  
+                            });
+                        }
+                    
+                        router.navigate([path], { queryParams });
+                    }
+                });            
             }
 
             setTimeout(function() {
@@ -116,6 +196,7 @@ function bootstrapWebComponent() {
     }
 
     hasBootstrapped = true;
+    webCompPage = true;
     
     console.log("-----------bootstraping webcomponent-------------");
     {{{webComponents}}}
