@@ -91,6 +91,36 @@ function initializeApp(appName, retries = 0, maxRetries = 10) {
                 wmAppClassElement.appendChild(appComponentElement);
             }
 
+            // triggered when navigated to webcomponent page from not a webcomponent page
+            if(!webCompPage && hasBootstrapped && {{isWebApp}}){
+                let pageNameConfigured = appComponentElement.getAttribute("pageName");
+                pageNameConfigured = pageNameConfigured ? pageNameConfigured : "Main";
+                
+                const currentPath = window.location.pathname + window.location.search;
+                const relativePath = currentPath.startsWith(baseHref)
+                                        ? currentPath.slice(baseHref.length)
+                                        : currentPath;
+
+                if(!relativePath){
+                    window.history.replaceState(null, '', `${baseHref}/${pageNameConfigured}`);
+                    router.navigate(['/'+ pageNameConfigured]);   
+                }else {
+                    const decodedURL = decodeURIComponent(relativePath);
+                    const [path, queryString] = decodedURL.split('?');
+                    const queryParams: any = {};
+
+                    if (queryString) {
+                        queryString.split('&').forEach(pair => {
+                            const [key, value] = pair.split('=');
+                            queryParams[key] = value;   
+                        });
+                    }
+                    router.navigate([path], { queryParams });
+                }
+
+                webCompPage = true;
+            }
+
             loadBootstrap();
         } catch(error) {
             console.log("Something went wrong", error)
@@ -102,6 +132,7 @@ function initializeApp(appName, retries = 0, maxRetries = 10) {
         }, 100);
     } else {
         console.log(`Maximum retries reached. Unable to find WebComponent wm-${wcAppName}`);
+        webCompPage = false;
         return;
     }
 }
