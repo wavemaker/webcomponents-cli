@@ -59,6 +59,13 @@
                 padding: 10px;
                 margin-top: 20px;
             }
+            pre {
+            background-color: #f1f1f1;
+            border-left: 4px solid #3498db;
+            padding: 10px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
         </style>
     </head>
     <body>
@@ -98,5 +105,54 @@
                 {{{prefabProps}}}
             </div>
         </div>
+        
+        {{#if isPrefab}}
+        <div>
+            <div>
+            <h1>WebComponent Usage Guide</h1>
+
+            <h3>Accessing Properties, Methods, and Events</h3>
+            <p>All properties, methods, and events are attached to the web component's DOM element.</p>
+            
+            <code>let webcomponent = document.querySelector('wm-{{{appTag}}}');</code>
+
+            <h4>Accessing Properties, Methods, and Events</h4>
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>Example</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Accessing Properties</td>
+                        <td><code>webcomponent.propname;</code></td>
+                    </tr>
+                    <tr>
+                        <td>Calling Methods</td>
+                        <td><code>webcomponent.methodname();</code></td>
+                    </tr>
+                    <tr>
+                        <td>Listening to Events</td>
+                        <td><code>webcomponent.addEventListener('eventname', callBackMethod);</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+
+            <h4>Ensuring Web Component Initialization</h4>
+            <p>The web component may not be ready immediately. To ensure you access properties, methods and events only after initialization, listen for the 'init' event:</p>
+            <pre><code>webcomponent.addEventListener('init', () => {
+  console.log('Web component initialized');
+});
+</code></pre>
+
+            <p>This ensures that your interactions with the web component happen at the right time.</p>
+
+        </div>
+        </div>
+        {{/if}}
+        
     </body>
 </html>
