@@ -50,7 +50,7 @@ const getGenNgDir = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}`);
 const getTargetDir = sourceDir => path.resolve(`${sourceDir}/target`);
 const getUIResourcesDir = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/ui-resources`);
 const getWCZipFile = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/wc-artifact.zip`);
-const getServiceDefsDir = sourceDir => path.resolve(`${getTargetDir(sourceDir)}/classes/servicedefs`);
+const getServiceDefsDir = sourceDir => path.resolve(`${getSrcDir(sourceDir)}/servicedefs`);
 const getNgBundle = sourceDir => path.resolve(`${getWCAppDir(sourceDir)}/dist/ng-bundle`);
 const getComponentName = name => `${upperFirst(name)}Component`;
 const getServicesDir = sourceDir => path.resolve(`${sourceDir}/services/securityService/designtime`);
@@ -269,11 +269,12 @@ const generateDocs = async(sourceDir) => {
 	let codeSnippet = escapeHtml(`<wm-${appTag}></wm-${appTag}>`);
 	let script = escapeHtml(`<script src="http[s]://HOST_NAME/bootstrap-${appTag}.js" data-api-url="http[s]://API_HOST_NAME/<>"></script>`);
 	let prefabProps = "";
-	if(isPrefabProject()) {
+	const isPrefab = isPrefabProject();
+	if(isPrefab) {
 		prefabProps = fs.readFileSync(`${getTargetDir(sourceDir)}/ui-resources/docs/index.html`, 'utf8');
 	}
 	const docsTemplate = getHandlebarTemplate('docs-html');
-	const docsHtml = docsTemplate({appName, codeSnippet, script, prefabProps});
+	const docsHtml = docsTemplate({appName, codeSnippet, script, prefabProps, appTag, isPrefab});
 	try {
 		if (!fs.existsSync(`${getWCAppDir(sourceDir)}/resources/docs`)) {
 			fs.mkdirSync(`${getWCAppDir(sourceDir)}/resources/docs`, { recursive: true });
