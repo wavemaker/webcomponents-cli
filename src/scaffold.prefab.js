@@ -36,9 +36,7 @@ async function copyFomattersFile(sourceDir) {
 }
 
 async function updateAppVariables(sourceDir) {
-	const variablesTemplate = getHandlebarTemplate('app-variables-json');
-	const contents = variablesTemplate({});
-	await writeFile(`${getSrcWebappDir(sourceDir)}/app.variables.json`, contents);
+	await writeFile(`${getSrcWebappDir(sourceDir)}/app.variables.json`, JSON.stringify({}));
 }
 
 async function addMainPage(sourceDir) {

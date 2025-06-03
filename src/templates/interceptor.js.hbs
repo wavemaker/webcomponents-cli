@@ -33,12 +33,6 @@ export class WMInterceptor implements HttpInterceptor {
                 artifactsUrl = (artifactsUrl.slice(-1) === "/" ? artifactsUrl.slice(0, -1) : artifactsUrl);
                 let reqUrl = artifactsUrl+'/'+fileName;
                 if(fileName.indexOf("servicedefs") !== -1) {
-                    fileName = "app-servicedefs.json";
-                    let prefabNameRegex = request.url.match(/servicedefs\/([^/]+)-prefab-servicedefs\.json$/);
-                    if(prefabNameRegex) {
-                        fileName = "app-prefabs-"+prefabNameRegex[1]+"-servicedefs.json"
-                        //fileName = "app-prefabs-servicedefs.json"
-                    }
                     reqUrl = artifactsUrl+'/servicedefs/'+fileName
                 }
                 if(fileName === "info.json") {

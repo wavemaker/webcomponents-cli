@@ -232,7 +232,7 @@ const updateAngularJson = async(sourceDir) => {
 		},
 		{
 			"glob": "**/*",
-			"input": "resources/servicedefs/",
+			"input": "src/servicedefs/",
 			"output": "/servicedefs/"
 		},
 		{
@@ -244,11 +244,6 @@ const updateAngularJson = async(sourceDir) => {
 			"glob": "**/*",
 			"input": "resources/docs/",
 			"output": "/docs/"
-		},
-		{
-			"glob": "**/*",
-			"input": "resources/security/",
-			"output": "/security/"
 		},
 		{
 			"glob": "**/*",
@@ -769,72 +764,35 @@ const copyUIResources = async (sourceDir) => {
 	}
 };
 
-const generateServiceDefs = async (sourceDir) => {
-	let targetDir = getGenNgDir(sourceDir);
-	let resourcesDir = `${getUIResourcesDir(sourceDir)}`;
-	let appSerDefs = "servicedefs/app-servicedefs.json";
-	let prefabSerDefs = "servicedefs/app-prefabs-servicedefs.json";
+const generatePrefabServiceDefs = async (sourceDir) => {
+	let serviceDefsDir = getServiceDefsDir(sourceDir);
+	let appSerDefs = "app-servicedefs.json";
+	let prefabSerDefs = `${global.appName}-prefab-servicedefs.json`;
 
-	//create an empty file.
-	if (!fs.existsSync(`${resourcesDir}/${prefabSerDefs}`)) {
+	//create an empty file for prefab-servicedefs and swap content with app-servicedefs.
+	if (!fs.existsSync(`${serviceDefsDir}/${prefabSerDefs}`)) {
 		const template = getHandlebarTemplate('servicedefs');
 		let contents = template({defs: safeString(JSON.stringify("", undefined, 4))});
-		fs.writeFileSync(`${resourcesDir}/${prefabSerDefs}`, contents, "utf-8");
-	}
-	if(isPrefabProject()) {
-		// change the filenames as we are making prefab to webapp
-		const swapFiles = () => {
-			let tempFile = join(resourcesDir, "servicedefs/temp.json");
-			let files = [
-				join(resourcesDir, appSerDefs),
-				join(resourcesDir, prefabSerDefs),
-			]
-			try {
-				fs.renameSync(files[0], tempFile);
-				fs.renameSync(files[1], files[0]);
-				fs.renameSync(tempFile, files[1]);
-				console.log(`Files ${files[0]} and ${files[1]} have been swapped.`);
-			} catch (error) {
-				console.error('Error swapping files:', error.message);
-			}
-		};
-		swapFiles();
+		fs.writeFileSync(`${serviceDefsDir}/${prefabSerDefs}`, contents, "utf-8");
 	}
 
-	fs.copyFileSync(`${resourcesDir}/${appSerDefs}`, `${targetDir}/resources/${appSerDefs}`);
-	if (!fs.existsSync(`${targetDir}/resources/servicedefs`)) {
-		fs.mkdirSync(`${targetDir}/resources/servicedefs`, { recursive: true });
-	}
-	fs.copyFileSync(`${resourcesDir}/${prefabSerDefs}`, `${targetDir}/resources/servicedefs/app-prefabs-${global.appName}-servicedefs.json`);
+	const swapFiles = () => {
+		let tempFile = join(serviceDefsDir, "temp.json");
+		let files = [
+			join(serviceDefsDir, appSerDefs),
+			join(serviceDefsDir, prefabSerDefs),
+		]
+		try {
+			fs.renameSync(files[0], tempFile);
+			fs.renameSync(files[1], files[0]);
+			fs.renameSync(tempFile, files[1]);
+			console.log(`Files ${files[0]} and ${files[1]} have been swapped.`);
+		} catch (error) {
+			console.error('Error swapping files:', error.message);
+		}
+	};
+	swapFiles();
 
-	//prefabs servicedefs
-	const prefabsServDefsDir = node_path.resolve(`${resourcesDir}/prefabs`);
-	return stat(prefabsServDefsDir)
-		.then(() => {
-			return new Promise(async (res, rej) => {
-				for (const dir of await readDir(prefabsServDefsDir)) {
-					if ((await stat(join(prefabsServDefsDir, dir))).isDirectory()) {
-						let src = join(prefabsServDefsDir, dir);
-						let dest =  node_path.resolve(`${getWCAppDir(sourceDir)}/resources/servicedefs`);
-						if (!fs.existsSync(`${dest}`)) {
-							fs.mkdirSync(`${dest}`, { recursive: true });
-						}
-						fs.copyFileSync(`${src}/prefab-servicedefs.json`, `${dest}/app-prefabs-${dir}-servicedefs.json`);
-					}
-				}
-				res();
-			});
-		}, () => Promise.resolve());
-};
-
-const generateSecurityInfo = async (sourceDir) => {
-	let targetDir = getGenNgDir(sourceDir);
-	const template = getHandlebarTemplate('security-info');
-	const contents = template();
-	if (!fs.existsSync(join(targetDir, "resources/security/"))) {
-		fs.mkdirSync(join(targetDir, "resources/security/"), { recursive: true });
-	}
-	await writeFile(`${targetDir}/resources/security/info.json`, contents);
 };
 
 const getMergedServiceDefs = async (sourceDir) => {
@@ -863,8 +821,9 @@ const generateDist = async(sourceDir) => {
 	await copyWebpackConfigFiles(sourceDir);
 
 	await copyUIResources(sourceDir);
-	await generateServiceDefs(sourceDir);
-	await generateSecurityInfo(sourceDir);
+	if(isPrefabProject()){
+		await generatePrefabServiceDefs(sourceDir);
+	}
 	await copyResourceFiles(sourceDir);
 
 	await copyBootstrapScript(sourceDir);
