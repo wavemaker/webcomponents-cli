@@ -88,7 +88,15 @@ export class SkipLocationChangeService {
                     // Set the flag to prevent infinite loops
                     this.isNavigatingWithSkipLocationChange = true;
                     // Navigate with skipLocationChange
-                    this.router.navigateByUrl(event.url, { skipLocationChange: {{isPrefab}} }); 
+                    const isPrefab = {{isPrefab}} ;
+
+                    if(isPrefab){
+                        this.router.navigateByUrl(event.url, { skipLocationChange: {{isPrefab}} });
+                    } else {
+                        //state-intercepted to detect route changes from parentApp
+                        this.router.navigateByUrl(event.url, { skipLocationChange: {{isPrefab}}, state: { customIntercepted: true } });
+                    }
+
                 } else {
                     // Reset the flag after the navigation completes
                     this.isNavigatingWithSkipLocationChange = false;
@@ -100,4 +108,36 @@ export class SkipLocationChangeService {
 
 export function initializeSkipLocationChange(service: SkipLocationChangeService) {
     return () => service.init();
+}
+
+import { CanComponentDeactivate } from "@wm/runtime/base";
+import { RouterStateSnapshot, ActivatedRouteSnapshot} from "@angular/router";
+
+// component passing through routegarud is cached and passed when navigated from not a webcomponent page to webcomponent page
+let lastComp;
+
+// acts as interceptor for CanDeactivateNgPageGuard route gaurd
+@Injectable()
+export class CustomCanDeactivateGuard extends CanDeactivateNgPageGuard {
+
+    override canDeactivate(
+        component: CanComponentDeactivate,
+        currentRoute?: ActivatedRouteSnapshot,
+        currentState?: RouterStateSnapshot,
+        nextState?: RouterStateSnapshot
+    ): boolean | Observable<boolean> | Promise<boolean> {
+        
+        const nextRoute = nextState?.url;
+        if (component) {
+            lastComp = component;
+            return super.canDeactivate(component, currentRoute, currentState, nextState);
+        }
+        
+        if (lastComp !== undefined) {
+            return super.canDeactivate(lastComp, currentRoute, currentState, nextState);
+        }
+
+        lastComp = new currentRoute.component()
+        return super.canDeactivate(lastComp, currentRoute, currentState, nextState);
+    }
 }

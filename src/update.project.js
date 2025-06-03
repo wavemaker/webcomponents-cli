@@ -343,7 +343,8 @@ const defineWebComponents = async (sourceDir, appName) => {
 	let webComponents = `
 	createApplication(appConfig).then((appRef) => {
 		const injector = appRef.injector;
-		const baseHref = injector.get(APP_BASE_HREF);
+		baseHref = injector.get(APP_BASE_HREF);
+		zone = injector.get(NgZone);
 		if (!customElements.get('wm-${appName}')) {
 			const appElement = createCustomElement(AppComponent, { injector });
 			customElements.define('wm-${appName}', appElement);
@@ -399,6 +400,7 @@ const updateAppConfigProviders = async (data, appName, sourceDir) => {
 	if(!isPrefab){
 		data = data.replace(/^\s*provideRouter\(\s*routes\s*,\s*withHashLocation\(\)\s*,\s*withComponentInputBinding\(\)\s*\),?\s*$/gm, '        provideRouter(routes, withComponentInputBinding()),');
 		data = data.replace(/^\s*{ provide: LocationStrategy, useClass: HashLocationStrategy },?\s*$/gm, '');
+		data = data.replace(/(?<=providers:\s*\[\s*((?:.|\n)*?))^\s*CanDeactivateNgPageGuard,?\s*$/gm,'        { provide: CanDeactivateNgPageGuard, useClass: CustomCanDeactivateGuard },');
 	}
 
 	let wmModulesRegex = /\.\.\.wmModules,?/; // Matches `...wmModules,` or `...wmModules`
