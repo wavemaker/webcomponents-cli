@@ -30,6 +30,35 @@ const appName = process.argv[2].split("=")[1];
         });
     };
 
+    const deleteDuplicateResources = async () => {
+        const basePath = './dist/ng-bundle/resources';
+        const targetsToDelete = [
+            'bootstrap',
+            'docs',
+            'files',
+            'i18n',
+            'prefabs',
+            'servicedefs',
+            'favicon.png',
+            'font.config.js'
+        ];
+
+        for (const target of targetsToDelete) {
+            const fullPath = path.join(basePath, target);
+            try {
+                if (fs.existsSync(fullPath)) {
+                    await fsextra.remove(fullPath);
+                    console.log(`Deleted: ${fullPath}`);
+                } else {
+                    console.log(`Not found: ${fullPath}`);
+                }
+            } catch (err) {
+                console.error(`Failed to delete ${fullPath}:`, err);
+            }
+        }
+    }
+
     await deleteUnusedLocaleFiles();
+    await deleteDuplicateResources();
 
 })();
