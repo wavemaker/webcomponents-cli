@@ -346,9 +346,46 @@ const defineWebComponents = async (sourceDir, appName) => {
 		baseHref = injector.get(APP_BASE_HREF);
 		zone = injector.get(NgZone);
 		if (!customElements.get('wm-${appName}')) {
-			const appElement = createCustomElement(AppComponent, { injector });
-			customElements.define('wm-${appName}', appElement);
-		}
+
+            const CustomElement = createCustomElement(AppComponent, { injector }) as any;
+
+			const customConnectedEvent = new Event("${appName}-onConnected");
+            const customDisconnectedEvent = new Event("${appName}-onDisconnected");
+
+            class CustomElementWithHooks extends CustomElement {
+                constructor(){
+                    super();
+                }
+
+                connectedCallback() {
+                    super.connectedCallback();
+                    window.dispatchEvent(customConnectedEvent);
+                }
+
+                disconnectedCallback() {
+                    super.disconnectedCallback();
+					window.dispatchEvent(customDisconnectedEvent);
+                }
+
+                connectedMoveCallback() {
+
+                }
+
+                adoptedCallback() {
+
+                }
+
+                attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+                    super.attributeChangedCallback(name, oldValue, newValue);
+                }
+
+                static get observedAttributes() {
+                    return []; 
+                }
+            }
+
+            customElements.define('wm-${appName}', CustomElementWithHooks as unknown as CustomElementConstructor );
+        }
 
 		bootstrap(appRef, baseHref);
 	})

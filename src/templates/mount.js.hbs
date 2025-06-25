@@ -80,16 +80,10 @@ function initializeApp(appName, retries = 0, maxRetries = 10) {
     const appComponentElement = document.querySelector(`wm-${wcAppName}`);
     if(appComponentElement){
         try {
-            const wmAppClassElement = document.createElement('div');
-            wmAppClassElement.classList.add('wm-app');
             if(!appComponentElement) {
                 console.error(`"The wm-${wcAppName} WebComponent element is not available in the DOM at the time of script loading`);
             }
-
-            if (!appComponentElement.parentElement?.classList.contains('wm-app')) {
-                appComponentElement.parentNode.insertBefore(wmAppClassElement, appComponentElement);
-                wmAppClassElement.appendChild(appComponentElement);
-            }
+            appComponentElement.classList.add('wm-app');
 
             // triggered when navigated to webcomponent page from not a webcomponent page
             if(!webCompPage && hasBootstrapped && {{isWebApp}}){
