@@ -85,7 +85,10 @@ function initializeApp(appName, retries = 0, maxRetries = 10) {
             }
             appComponentElement.classList.add('wm-app');
 
-            // triggered when navigated to webcomponent page from not a webcomponent page
+            /**
+             * when user navigates from webcomponent page to non-webcomponent page
+             * and then returns to webcomponent page, new route request is called
+             */
             if(!webCompPage && hasBootstrapped && {{isWebApp}}){
                 let pageNameConfigured = appComponentElement.getAttribute("pageName");
                 pageNameConfigured = pageNameConfigured ? pageNameConfigured : "Main";
@@ -99,17 +102,8 @@ function initializeApp(appName, retries = 0, maxRetries = 10) {
                     window.history.replaceState(null, '', `${baseHref}/${pageNameConfigured}`);
                     router.navigate(['/'+ pageNameConfigured]);   
                 }else {
-                    const decodedURL = decodeURIComponent(relativePath);
-                    const [path, queryString] = decodedURL.split('?');
-                    const queryParams: any = {};
-
-                    if (queryString) {
-                        queryString.split('&').forEach(pair => {
-                            const [key, value] = pair.split('=');
-                            queryParams[key] = value;   
-                        });
-                    }
-                    router.navigate([path], { queryParams });
+                    const serializedURL = defaultUrlSerializer.serialize(router.parseUrl(relativePath));
+                    router.navigateByUrl(serializedURL);
                 }
 
                 webCompPage = true;
