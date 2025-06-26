@@ -20,8 +20,20 @@ export function initMetadata(appName) {
             //no prefabs present. just ignore the error
         }
         _WM_APP_PROJECT.isPreview = false;
-        //@ts-ignore
-        let baseAPIUrl =  _WM_APP_PROJECT.apiUrl = WM_APPS_META[appName].apiUrl = AppProperties["app.apiUrl"];
+
+        const scriptSelector = `script[src*="bootstrap-${appName}.js"]`;
+		const currentScript = document.querySelector(scriptSelector);
+        let baseAPIUrl;
+        if (currentScript) {
+            if(currentScript.getAttribute('data-api-url')){
+                //@ts-ignore
+                baseAPIUrl =  _WM_APP_PROJECT.apiUrl = WM_APPS_META[appName].apiUrl;
+            } else {
+                //@ts-ignore
+                baseAPIUrl =  _WM_APP_PROJECT.apiUrl = WM_APPS_META[appName].apiUrl = AppProperties["app.apiUrl"];
+            }
+        }
+       
         //@ts-ignore
         let artifactsUrl = WM_APPS_META[appName].artifactsUrl;
         //@ts-ignore
