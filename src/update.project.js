@@ -247,11 +247,6 @@ const updateAngularJson = async(sourceDir) => {
 		},
 		{
 			"glob": "**/*",
-			"input": "resources/i18n/",
-			"output": "/i18n/"
-		},
-		{
-			"glob": "**/*",
 			"input": "resources/",
 			"output": "/resources/",
 			"ignore": [
@@ -516,10 +511,27 @@ const getComponentImports = async(sourceDir) => {
 	return componentImports;
 }
 
+const extractAppProperties = async (sourceDir) => {
+	const fileContent = await fs.promises.readFile(`${getTargetDir(sourceDir)}/classes/app.properties`, 'utf-8');
+
+	const appProperties = {};
+	fileContent.split('\n').forEach(line => {
+        line = line.trim();
+        if (line && !line.startsWith('#')) {
+            const [key, ...rest] = line.split('=');
+            appProperties[key.trim()] = rest.join('=').trim();
+        }
+    });
+
+    return appProperties;
+}
+
 const updateImports = async (sourceDir, data) => {
 	const template = getHandlebarTemplate('imports');
 	let componentImports = await getComponentImports(sourceDir);
-	const contents = template({componentImports});
+	const appPropertiesObj = await extractAppProperties(sourceDir);
+	const appProperties = JSON.stringify(appPropertiesObj, null, 4); 
+	const contents = template({componentImports, appProperties});
 	return `${contents}\n${data}`;
 }
 
@@ -708,26 +720,6 @@ const copyWebpackConfigFiles = async (sourceDir) => {
 	await writeFile(`${targetDir}/wc-custom-webpack.config.js`, contents);
 };
 
-const copyResourceFiles = async (sourceDir) => {
-	let appName = await getAppName(sourceDir);
-
-	let sourceI18nDir = geti18nDir(sourceDir);
-	const i18nFiles = fs.readdirSync(sourceI18nDir);
-	let destI18nDir = getResourceFilesDir(sourceDir);
-
-	i18nFiles.forEach(i18nFile => {
-		const sourcePath = join(sourceI18nDir, i18nFile);
-		const destPath = join(destI18nDir, i18nFile);
-
-		try {
-			fs.copyFileSync(sourcePath, destPath);
-			log(`Copied ${sourcePath} to ${destPath}`);
-		} catch (err) {
-			error(`Error copying file ${sourcePath}: ${err}`);
-		}
-	});
-};
-
 const getActiveTheme = async (sourceDir) => {
 	let themesConfigPath = getThemesConfigJson(sourceDir);
 	return JSON.parse(await readFile(`${themesConfigPath}`, 'utf8'));
@@ -861,7 +853,6 @@ const generateDist = async(sourceDir) => {
 	if(isPrefabProject()){
 		await generatePrefabServiceDefs(sourceDir);
 	}
-	await copyResourceFiles(sourceDir);
 
 	await copyBootstrapScript(sourceDir);
 	await installDeps(sourceDir);
