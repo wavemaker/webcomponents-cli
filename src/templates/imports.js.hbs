@@ -1,13 +1,22 @@
 import { Injector, Injectable, DoBootstrap, InjectionToken } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
-import { HttpInterceptor, HttpRequest, HttpResponse, HttpHandler, HttpEvent, HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
+import { HttpInterceptor, HttpRequest, HttpResponse, HttpHandler, HttpEvent, HttpClientModule } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import  { createCustomElement } from '@angular/elements';
 {{{componentImports}}}
+{{#unless hasAppInitializer}}
 import { APP_INITIALIZER } from '@angular/core';
+{{/unless}}
+{{#unless hasHttpInterceptors}}
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+{{/unless}}
+{{#if appCodeGenModuleExists}}
 import { AppCodeGenModule } from './app-codegen.module';
+{{/if}}
+{{#unless hasWmAppProject}}
 import { _WM_APP_PROJECT } from '@wm/core';
+{{/unless}}
 
 export const PREFAB_NAME = new InjectionToken<string>('Prefab Name');
 

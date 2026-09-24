@@ -85,6 +85,12 @@ async function copyPrefabFiles(sourceDir) {
 }
 
 async function copyFile(file, srcDir, destDir) {
+	//prefabProperties.properties (and possibly other files here) only exist when the prefab actually
+	//has that data (e.g. a prefab with no configurable properties has no prefabProperties.properties
+	//at all, only an empty prefabPropertiesMetadata.json) - skip rather than crash the whole conversion.
+	if (!fs.existsSync(`${srcDir}/${file}`)) {
+		return;
+	}
 	if (!fs.existsSync(`${destDir}`)) {
 		fs.mkdirSync(`${destDir}`, { recursive: true });
 	}
