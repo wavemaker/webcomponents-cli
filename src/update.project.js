@@ -205,18 +205,35 @@ const removeCordovaPlugins = (packageJson) => {
 	}
 }
 
+//Newer @wavemaker/angular-codegen versions (Angular 18+) no longer keep index/customWebpackConfig/
+//outputPath on the shared build "options" - each configuration (production/development/...) defines
+//its own copy, which overrides "options" during `ng build -c <name>`. So these have to be patched on
+//both "options" and on each configuration actually used by the build scripts, or the edits are either
+//a crash (missing key) or silently ignored (configuration's own value wins over "options").
+const patchBuildOutputOptions = (options) => {
+	if (!options) {
+		return;
+	}
+	const existingIndex = options["index"];
+	const indexInput = (existingIndex && typeof existingIndex === "object" && existingIndex.input)
+		|| (typeof existingIndex === "string" && existingIndex)
+		|| "src/index.html";
+
+	options["outputPath"] = 'dist/ng-bundle';
+	options["index"] = { input: indexInput, output: '../index.html' };
+	options["customWebpackConfig"] = { path: `./${CUSTOM_WEBPACK_CONFIG_FILE}` };
+	delete options["indexTransform"];
+};
+
 const updateAngularJson = async(sourceDir) => {
 	const angularJsonFile = getAngularJson(sourceDir);
 	const ngJson = JSON.parse(fs.readFileSync(angularJsonFile));
 	const build = ngJson["projects"]["angular-app"]["architect"]["build"];
 	const buildOptions = build["options"];
 
-	buildOptions["outputPath"] = 'dist/ng-bundle';
-	buildOptions["index"]["output"] = '../index.html';
+	patchBuildOutputOptions(buildOptions);
 	buildOptions["scripts"] = removeScriptsLazyEntries(buildOptions["scripts"]);
 	buildOptions["styles"] = removeStylesLazyEntries(buildOptions["styles"]);
-	buildOptions["customWebpackConfig"]["path"] = `./${CUSTOM_WEBPACK_CONFIG_FILE}`;
-	delete buildOptions["indexTransform"];
 
 	//all the backend resources like i18n/en.json/servicedefs are placed here and move them to ng-bundle dir of the final dist
 	let otherAssets = [
@@ -264,7 +281,13 @@ const updateAngularJson = async(sourceDir) => {
 	];
 	buildOptions["assets"].push(...otherAssets);
 
-	build["configurations"]["production"]["outputHashing"] = "none";
+	const configurations = build["configurations"] || {};
+	//production/development are the only configurations used by build:wc/build:wcd (see updatePackageJson)
+	patchBuildOutputOptions(configurations["production"]);
+	patchBuildOutputOptions(configurations["development"]);
+	if (configurations["production"]) {
+		configurations["production"]["outputHashing"] = "none";
+	}
 	//keep this till it stabilises. if prod required pass it as a param to build script (--c=production)
 	build["defaultConfiguration"] = "development";
 
@@ -404,6 +427,27 @@ const defineWebComponents = async (sourceDir, appName) => {
 	return webComponents;
 }
 
+//Newer @wavemaker/angular-codegen versions never generate src/app/app-codegen.module.ts (the
+//generateCodeGenModule step was dropped from the codegen pipeline), so AppCodeGenModule must only be
+//referenced/imported when that file actually exists, or the build fails with a missing module error.
+const isAppCodeGenModulePresent = (sourceDir) =>
+	fs.existsSync(node_path.join(getSrcDir(sourceDir), 'app', 'app-codegen.module.ts'));
+
+//Detects whether `name` is already brought in by a named import in the (untouched) generated
+//app.config.ts, so the CLI's own templates don't re-import (and TS2300 duplicate-identifier) a symbol
+//that newer codegen versions already import natively.
+const hasNamedImport = (source, name) => {
+	const importBlockRegex = /import\s*\{([^}]*)\}\s*from\s*['"][^'"]+['"]/g;
+	let match;
+	while ((match = importBlockRegex.exec(source)) !== null) {
+		const names = match[1].split(',').map(s => s.trim().split(/\s+as\s+/)[0]).filter(Boolean);
+		if (names.includes(name)) {
+			return true;
+		}
+	}
+	return false;
+};
+
 const updateConfigImports = async (sourceDir, data) => {
     // Find the wmModules array and modify it
     const wmModulesRegex = /const wmModules = \[\s*importProvidersFrom\(\s*([\s\S]*?)\)\s*\];/;
@@ -416,7 +460,7 @@ const updateConfigImports = async (sourceDir, data) => {
         if (!wmModulesContent.includes('HttpClientModule')) {
             wmModulesContent += '\n        HttpClientModule';
         }
-        if (!wmModulesContent.includes('AppCodeGenModule')) {
+        if (isAppCodeGenModulePresent(sourceDir) && !wmModulesContent.includes('AppCodeGenModule')) {
             wmModulesContent += ',\n        AppCodeGenModule';
         }
 
@@ -519,7 +563,13 @@ const getComponentImports = async(sourceDir) => {
 const updateImports = async (sourceDir, data) => {
 	const template = getHandlebarTemplate('imports');
 	let componentImports = await getComponentImports(sourceDir);
-	const contents = template({componentImports});
+	const contents = template({
+		componentImports,
+		appCodeGenModuleExists: isAppCodeGenModulePresent(sourceDir),
+		hasAppInitializer: hasNamedImport(data, 'APP_INITIALIZER'),
+		hasHttpInterceptors: hasNamedImport(data, 'HTTP_INTERCEPTORS'),
+		hasWmAppProject: hasNamedImport(data, '_WM_APP_PROJECT')
+	});
 	return `${contents}\n${data}`;
 }
 
