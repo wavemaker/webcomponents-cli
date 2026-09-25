@@ -54,8 +54,7 @@
     "webpack-node-externals": "3.0.0"
   },
   "engines": {
-    "node": "~22.11.0",
-    "npm": "~10.9.0"
-  },
-  "engineStrict": true
+    "node": "^22.11.0",
+    "npm": "^10.9.0"
+  }
 }
